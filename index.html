@@ -527,31 +527,14 @@
     background: var(--accent) !important;
   }
 
-  [data-theme="dark"] .gantt_today {
-    border-left: 2px solid var(--accent) !important;
-  }
-
-  .today-red-line {
+  .gantt-today-line {
     position: absolute;
     top: 0;
     width: 2px;
     height: 100%;
     background: #e53935;
-    z-index: 6;
+    z-index: 5;
     pointer-events: none;
-  }
-  .today-red-label {
-    position: absolute;
-    top: 2px;
-    left: 50%;
-    transform: translateX(-50%);
-    background: #e53935;
-    color: #fff;
-    font-size: 0.65rem;
-    font-weight: 700;
-    padding: 1px 5px;
-    border-radius: 4px;
-    white-space: nowrap;
   }
 
   [data-theme="dark"] .gantt_task_line {
@@ -624,46 +607,13 @@
     white-space: nowrap;
   }
 
-  .changelog-entry {
-    display: flex;
-    gap: 12px;
-    padding: 10px 0;
-    border-bottom: 1px solid var(--border);
-    font-size: 0.85rem;
-  }
-
-  .changelog-entry:last-child { border-bottom: none; }
-
-  .changelog-time {
-    min-width: 120px;
-    font-size: 0.75rem;
-    color: var(--text2);
-    white-space: nowrap;
-    padding-top: 2px;
-  }
-
-  .changelog-icon {
-    width: 28px;
-    height: 28px;
-    border-radius: 50%;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 0.8rem;
-    flex-shrink: 0;
-  }
-
-  .changelog-icon.game-added { background: rgba(0,200,83,0.15); color: var(--green); }
-  .changelog-icon.game-updated { background: rgba(255,214,0,0.15); color: var(--yellow); }
-  .changelog-icon.game-deleted { background: rgba(255,82,82,0.15); color: #ff5252; }
-  .changelog-icon.status-changed { background: rgba(255,145,0,0.15); color: var(--orange); }
-  .changelog-icon.hours-updated { background: rgba(41,121,255,0.15); color: #2979ff; }
-  .changelog-icon.chain-created { background: rgba(124,77,255,0.15); color: #7c4dff; }
-  .changelog-icon.chain-updated { background: rgba(124,77,255,0.15); color: #7c4dff; }
-  .changelog-icon.chain-deleted { background: rgba(255,82,82,0.15); color: #ff5252; }
-  .changelog-icon.settings-changed { background: rgba(120,144,156,0.15); color: #78909c; }
-
-  .changelog-message { flex: 1; color: var(--text); }
+  .cl-version { margin-bottom: 20px; }
+  .cl-version-header { display: flex; align-items: center; gap: 10px; margin-bottom: 10px; flex-wrap: wrap; }
+  .cl-version-badge { background: var(--accent); color: #fff; font-weight: 700; font-size: 0.75rem; padding: 3px 12px; border-radius: 12px; letter-spacing: 0.5px; }
+  .cl-latest { font-size: 0.65rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; color: var(--accent); background: rgba(233,69,96,0.12); padding: 2px 8px; border-radius: 4px; }
+  .cl-entry { display: flex; align-items: center; gap: 8px; padding: 6px 0; font-size: 0.85rem; color: var(--text); }
+  .cl-icon { width: 20px; text-align: center; flex-shrink: 0; font-size: 0.9rem; }
+  .cl-text { flex: 1; }
 
   .empty-state {
     text-align: center;
@@ -1186,9 +1136,10 @@
       </div>
 
       <div class="tab-pane" id="tab-changelog">
-        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;">
           <h2 style="font-size:1.1rem;">Changelog</h2>
         </div>
+        <div style="font-size:0.75rem;color:var(--text2);margin-bottom:16px;">Release notes</div>
         <div id="changelogList"></div>
       </div>
 
@@ -1618,26 +1569,31 @@ function renderChangelog() {
   let entries = [];
   try { entries = JSON.parse(localStorage.getItem(CHANGELOG_KEY)) || []; } catch(e) {}
   if (entries.length === 0) {
-    div.innerHTML = '<div class="empty-state"><div class="icon">&#128221;</div><h3>No changes logged yet</h3><p>Actions like adding, updating, or deleting games will appear here.</p></div>';
+    div.innerHTML = '<div class="empty-state"><div class="icon">&#128221;</div><h3>No changes yet</h3><p>Feature updates and fixes will appear here.</p></div>';
     return;
   }
   const newest = new Date(entries[0].ts);
   const lastUpdateStr = newest.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) + ' ' + newest.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
-  let html = '<div style="font-size:0.8rem;color:var(--text2);padding-bottom:8px;">Last Update: <strong>' + lastUpdateStr + '</strong></div>';
-  let lastDate = '';
+  let html = '<div style="font-size:0.8rem;color:var(--text2);padding-bottom:12px;">Last Update: <strong>' + lastUpdateStr + '</strong></div>';
+  const typeOrder = { 'new': 0, 'change': 1, 'fix': 2 };
+  const groups = {};
   entries.forEach(e => {
-    const d = new Date(e.ts);
-    const dateStr = d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
-    const timeStr = d.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
-    if (dateStr !== lastDate) {
-      html += '<div style="font-size:0.75rem;font-weight:600;color:var(--text2);padding:12px 0 4px;text-transform:uppercase;letter-spacing:0.5px;">' + dateStr + '</div>';
-      lastDate = dateStr;
-    }
-    const typeLabel = (e.type || 'change').toUpperCase();
-    html += '<div class="changelog-entry">' +
-      '<div class="changelog-icon ' + (e.type || '') + '">' + (CHANGELOG_TYPES[e.type] || '&#8226;') + '</div>' +
-      '<div class="changelog-message">v' + esc(e.version || '?') + ' &mdash; <strong>' + typeLabel + '</strong> &mdash; ' + esc(e.description) + '</div>' +
-      '</div>';
+    const v = e.version || '?';
+    if (!groups[v]) groups[v] = [];
+    groups[v].push(e);
+  });
+  let first = true;
+  Object.keys(groups).forEach(ver => {
+    groups[ver].sort((a, b) => (typeOrder[a.type] || 99) - (typeOrder[b.type] || 99));
+    html += '<div class="cl-version">' +
+      '<div class="cl-version-header">' +
+      '<span class="cl-version-badge">v' + esc(ver) + '</span>';
+    if (first) { html += '<span class="cl-latest">Latest</span>'; first = false; }
+    html += '</div><div class="cl-version-entries">';
+    groups[ver].forEach(e => {
+      html += '<div class="cl-entry"><span class="cl-icon">' + (CHANGELOG_TYPES[e.type] || '&#8226;') + '</span><span class="cl-text">' + esc(e.description) + '</span></div>';
+    });
+    html += '</div></div>';
   });
   div.innerHTML = html;
 }
@@ -2459,39 +2415,17 @@ function renderGantt() {
   gantt.parse(tasks);
   gantt.showDate(today);
 
-  _todayDate = today;
-  drawTodayLine();
-}
-
-let _todayDate = null;
-
-function positionTodayLine() {
-  const cont = document.getElementById('ganttContainer');
-  const line = cont && cont.querySelector('.today-red-line');
-  if (!line || !_todayDate) return;
-  try {
-    const gridW = (gantt.$grid && gantt.$grid.offsetWidth) || (gantt.config.grid_width || 0);
-    const scrollX = (gantt.getScrollState && gantt.getScrollState().x) || 0;
-    const x = gridW + gantt.posFromDate(_todayDate) - scrollX;
-    line.style.left = x + 'px';
-  } catch (e) {}
-}
-
-function drawTodayLine() {
-  const cont = document.getElementById('ganttContainer');
-  if (!cont) return;
-  let line = cont.querySelector('.today-red-line');
-  if (!line) {
-    line = document.createElement('div');
-    line.className = 'today-red-line';
-    const lbl = document.createElement('span');
-    lbl.className = 'today-red-label';
-    lbl.textContent = 'Today';
-    line.appendChild(lbl);
-    cont.appendChild(line);
+  var _td = document.querySelector('#ganttContainer .gantt_task_data');
+  if (_td) {
+    var _line = _td.querySelector('.gantt-today-line');
+    if (!_line) {
+      _line = document.createElement('div');
+      _line.className = 'gantt-today-line';
+      _td.appendChild(_line);
+    }
+    var _x = gantt.posFromDate(today);
+    if (_x != null) _line.style.left = Math.round(_x) + 'px';
   }
-  positionTodayLine();
-  setTimeout(positionTodayLine, 50);
 }
 
 gantt.config.readonly = true;
@@ -2533,9 +2467,20 @@ gantt.templates.tooltip_text = function(start, end, task) {
 };
 
 gantt.init('ganttContainer');
-gantt.attachEvent('onScroll', positionTodayLine);
-gantt.attachEvent('onGanttRender', positionTodayLine);
-window.addEventListener('resize', positionTodayLine);
+
+function updateTodayLine() {
+  try {
+    var _c = document.querySelector('#ganttContainer .gantt_task_data');
+    if (!_c) return;
+    var _l = _c.querySelector('.gantt-today-line');
+    if (!_l) return;
+    var _d = new Date(); _d.setHours(0,0,0,0);
+    var _x = gantt.posFromDate(_d);
+    if (_x != null) _l.style.left = Math.round(_x) + 'px';
+  } catch(e) {}
+}
+gantt.attachEvent('onGanttRender', updateTodayLine);
+window.addEventListener('resize', updateTodayLine);
 
 function ganttPrev() {
   try {
@@ -2798,8 +2743,9 @@ loadDB();
 renderAll();
 loadSettingsUI();
 
-localStorage.removeItem('playnext_changelog');
-logChangelog('new', 'App initialized', '1.0.0');
+if (localStorage.getItem('playnext_changelog_seed') !== CHANGELOG_VERSION) {
+  localStorage.setItem(CHANGELOG_KEY, '[]');
+  logChangelog('new', 'App initialized', '1.0.0');
 logChangelog('new', 'PWA support', '1.1.0');
 logChangelog('new', 'Dropbox sync', '1.1.0');
 logChangelog('new', 'Search bar clear button', '1.1.0');
@@ -2823,7 +2769,10 @@ logChangelog('change', 'Chains always displayed in alphabetical order', '1.1.0')
 logChangelog('change', 'Gantt height adjusts dynamically to number of games', '1.1.0');
 logChangelog('change', 'Sync button always visible with animated spin during sync', '1.1.0');
 logChangelog('change', 'Games grouped by chain (alphabetical), play order preserved within chain', '1.1.1');
-logChangelog('change', 'Red "Today" marker line added to Gantt chart', '1.1.1');
+logChangelog('change', 'Redesigned changelog with version-grouped release notes', '1.1.1');
+logChangelog('fix', 'Today marker line in Gantt chart now uses native dhtmlxGantt positioning', '1.1.1');
+  localStorage.setItem('playnext_changelog_seed', CHANGELOG_VERSION);
+}
 
 document.getElementById('searchInput').addEventListener('input', function() { updateSearchClear(); renderGameList(); });
 
