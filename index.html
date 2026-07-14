@@ -55,19 +55,14 @@
     color: var(--text);
     height: 100vh;
     box-sizing: border-box;
-    padding-top: 24px;
+    padding-top: 0;
     display: flex;
     flex-direction: column;
     overflow: hidden;
   }
 
   .dev-banner {
-    position: fixed; top: 0; left: 0; right: 0; z-index: 9999;
-    height: 24px;
-    display: flex; align-items: center; justify-content: center;
-    background: #dc2626; color: #fff;
-    font-size: 0.7rem; font-weight: 800; letter-spacing: 0.15em;
-    text-transform: uppercase;
+    display: none;
   }
 
   header {
@@ -2718,7 +2713,6 @@ logChangelog('change', 'Games always displayed in alphabetical order');
 logChangelog('change', 'Chains always displayed in alphabetical order');
 logChangelog('change', 'Gantt height adjusts dynamically to number of games');
 logChangelog('change', 'Sync button always visible with animated spin during sync');
-logChangelog('new', 'Mock Dropbox mode (enter "mock" to preview connected UI)');
 
 document.getElementById('searchInput').addEventListener('input', function() { updateSearchClear(); renderGameList(); });
 
