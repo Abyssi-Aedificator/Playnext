@@ -1248,6 +1248,10 @@
     </div>
     <div class="form-row">
       <div class="form-group">
+        <label>Start Date</label>
+        <input type="date" id="gameStartDate" oninput="previewEndDate()">
+      </div>
+      <div class="form-group">
         <label>Status</label>
         <select id="gameStatus">
           <option value="not-started">Not Started</option>
@@ -1255,39 +1259,29 @@
           <option value="completed">Completed</option>
         </select>
       </div>
-      <div class="form-group">
-        <label>Platform</label>
-        <input type="text" id="gamePlatform" placeholder="e.g. PC, PS5">
-      </div>
     </div>
     <div class="form-row">
       <div class="form-group">
-        <label>Start Date</label>
-        <input type="date" id="gameStartDate" oninput="previewEndDate()">
+        <label>Estimated End</label>
+        <div class="computed-date-display empty" id="gameEndDatePreview">Set date &amp; hours to see estimate</div>
       </div>
       <div class="form-group">
-        <label>Estimated End Date (from Settings)</label>
-        <div class="computed-date-display empty" id="gameEndDatePreview">Set start date and hours to see estimate</div>
-      </div>
-    </div>
-    <div class="form-row">
-      <div class="form-group">
-        <label>Gantt Color</label>
+        <label>Color</label>
         <div id="modalColorSwatches"></div>
-        <div style="display:flex;align-items:center;gap:8px;margin-top:8px;">
-          <input type="color" id="gameColor" value="#888888" style="width:36px;height:32px;border:1px solid var(--border);border-radius:6px;cursor:pointer;background:none;padding:2px;">
+        <div style="display:flex;align-items:center;gap:8px;margin-top:6px;">
+          <input type="color" id="gameColor" value="#888888" style="width:30px;height:28px;border:1px solid var(--border);border-radius:6px;cursor:pointer;background:none;padding:2px;">
           <span style="font-size:0.75rem;color:var(--text2);">Custom</span>
-          <button type="button" class="btn btn-sm btn-outline" onclick="document.getElementById('gameColor').value='#888888';previewGameColor('gameColor','#888888');">Reset</button>
+          <button type="button" class="btn btn-sm btn-outline" style="margin-left:auto;" onclick="document.getElementById('gameColor').value='#888888';previewGameColor('gameColor','#888888');">Reset</button>
         </div>
       </div>
     </div>
     <div class="form-group">
       <label>Notes</label>
-      <textarea id="gameNotes" placeholder="Optional notes..."></textarea>
+      <textarea id="gameNotes" placeholder="Optional notes..." style="min-height:80px;"></textarea>
     </div>
     <div class="modal-actions">
       <button class="btn btn-outline" onclick="closeModal('gameModal')">Cancel</button>
-      <button class="btn" onclick="saveGame()">Save</button>
+      <button class="btn" onclick="saveGame()">&#10003; Save</button>
     </div>
   </div>
 </div>
@@ -1406,7 +1400,7 @@ function getGameEndDate(g) {
   if (g.status === 'completed') return null;
   const remaining = (g.totalHours || 0) - (g.hoursPlayed || 0);
   if (!g.startDate && remaining <= 0) return null;
-  if (!g.startDate || g.dateMode === 'today' || g.dateMode === undefined || g.dateMode === null || g.dateMode === '') return getTodayEndDate(remaining);
+  if (!g.startDate || g.dateMode === 'today' || g.dateMode === undefined || g.dateMode === null) return getTodayEndDate(remaining);
   return estimateEndDate(g.startDate, remaining);
 }
 
@@ -1934,7 +1928,6 @@ function openAddModal() {
   document.getElementById('gameTotalHours').value = '';
   document.getElementById('gameHoursPlayed').value = '';
   document.getElementById('gameStatus').value = 'not-started';
-  document.getElementById('gamePlatform').value = '';
   document.getElementById('gameStartDate').value = '';
   document.getElementById('gameNotes').value = '';
   document.getElementById('gameColor').value = '#888888';
@@ -1953,7 +1946,6 @@ function openEditModal(id) {
   document.getElementById('gameTotalHours').value = g.totalHours || '';
   document.getElementById('gameHoursPlayed').value = g.hoursPlayed || '';
   document.getElementById('gameStatus').value = g.status;
-  document.getElementById('gamePlatform').value = g.platform || '';
   document.getElementById('gameStartDate').value = g.startDate || '';
   document.getElementById('gameNotes').value = g.notes || '';
   document.getElementById('gameColor').value = g.color || '#888888';
@@ -1976,7 +1968,6 @@ function saveGame() {
     totalHours: parseFloat(document.getElementById('gameTotalHours').value) || 0,
     hoursPlayed: parseFloat(document.getElementById('gameHoursPlayed').value) || 0,
     status: document.getElementById('gameStatus').value,
-    platform: document.getElementById('gamePlatform').value.trim(),
     startDate: document.getElementById('gameStartDate').value,
     notes: document.getElementById('gameNotes').value.trim(),
     color: document.getElementById('gameColor').value
@@ -2150,7 +2141,7 @@ function renderDetail() {
         </div>
         <div style="margin-top:8px;display:flex;align-items:center;gap:8px;font-size:0.8rem;color:var(--text2);">
           <label class="cb-toggle">
-            <input type="checkbox" ${g.dateMode!=='chain'?'checked':''} onchange="setDateMode('${g.id}',this.checked)">
+            <input type="checkbox" ${g.dateMode==='today'?'checked':''} onchange="setDateMode('${g.id}',this.checked)">
             <span class="cb-track"><span class="cb-thumb"></span></span>
             Use today + avg daily hours instead
           </label>
@@ -2260,7 +2251,7 @@ function setGameColor(id, color) {
 function setDateMode(id, useToday) {
   const g = db.games.find(x => x.id === id);
   if (!g) return;
-  g.dateMode = useToday ? 'today' : '';
+  g.dateMode = useToday ? 'today' : 'chain';
   saveDB();
   renderAll();
 }
@@ -2391,8 +2382,7 @@ gantt.templates.tooltip_text = function(start, end, task) {
   if (!game) return '';
   const pct = game.totalHours > 0 ? Math.round((game.hoursPlayed / game.totalHours) * 100) : 0;
   return '<b>' + esc(game.title) + '</b><br>Status: ' + game.status.replace('-', ' ') +
-    '<br>Hours: ' + (game.hoursPlayed || 0) + ' / ' + (game.totalHours || 0) + ' (' + pct + '%)' +
-    (game.platform ? '<br>Platform: ' + esc(game.platform) : '');
+    '<br>Hours: ' + (game.hoursPlayed || 0) + ' / ' + (game.totalHours || 0) + ' (' + pct + '%)';
 };
 
 gantt.init('ganttContainer');
@@ -2672,6 +2662,10 @@ logChangelog('change', 'Selectable end date calculation');
 logChangelog('change', 'Gantt viewport defaults to Today');
 logChangelog('fix', 'UTC date issues');
 logChangelog('fix', 'Gantt scrolled far from Today');
+logChangelog('change', 'Redesigned add/edit game modal');
+logChangelog('new', 'Dev banner indicator');
+logChangelog('fix', 'Platform field removed from add/edit modal');
+logChangelog('fix', 'Date mode toggle always on');
 
 document.getElementById('searchInput').addEventListener('input', function() { updateSearchClear(); renderGameList(); });
 
