@@ -118,8 +118,8 @@
   }
 
   .sidebar {
-    width: 340px;
-    min-width: 340px;
+    width: 380px;
+    min-width: 380px;
     background: var(--bg2);
     border-right: 1px solid var(--border);
     display: flex;
@@ -1089,7 +1089,7 @@
         <button class="search-clear" id="searchClear" onclick="document.getElementById('searchInput').value=''; renderGameList(); updateSearchClear();">&#10005;</button>
       </div>
       <button class="btn btn-sm" onclick="openAddModal()">+ Add</button>
-      <button id="syncBtn" onclick="dropboxUpload()" title="Sync to Dropbox"><span class="sync-ico">&#8635;</span></button>
+      <button id="syncBtn" onclick="syncNow()" title="Sync to Dropbox"><span class="sync-ico">&#8635;</span></button>
     </div>
     <div class="filter-bar" id="filterBar">
       <div class="custom-dropdown" id="filterDropdown">
@@ -1203,7 +1203,7 @@
             <p style="font-size:0.8rem;color:var(--text2);margin-bottom:12px;">Sync through your own Dropbox account so your gaming planner is available on all your devices. Your data goes straight from your browser to Dropbox &mdash; never through any server of ours.</p>
             <div id="dbxSetup">
               <label style="font-size:0.85rem;color:var(--text);margin-bottom:6px;display:block;">Dropbox App Key <a href="https://www.dropbox.com/developers/apps" target="_blank" rel="noopener" class="dbx-link">(get one free &rarr;)</a></label>
-              <input type="text" id="dbxKey" placeholder="e.g. abcd1234efgh567" autocomplete="off" spellcheck="false">
+              <input type="text" id="dbxKey" placeholder="e.g. abcd1234efgh567 (type 'mock' to preview)" autocomplete="off" spellcheck="false">
               <div style="margin-top:12px;">
                 <button class="btn btn-sm" onclick="dropboxConnect()">Connect to Dropbox</button>
               </div>
@@ -1644,6 +1644,20 @@ async function pkceChallenge(verifier) {
 async function dropboxConnect() {
   const key = document.getElementById('dbxKey').value.trim();
   if (!key) { notify('Enter your Dropbox App key first'); return; }
+  if (key.toLowerCase() === 'mock') {
+    dbx.appKey = 'mock';
+    dbx.accessToken = 'mock-token';
+    dbx.refreshToken = 'mock-refresh';
+    dbx.expiresAt = Date.now() + 3600000;
+    dbx.account = 'mock.user@dropbox.com (mock)';
+    dbx.lastSync = '';
+    dbx.autoUpload = false;
+    dbx.autoSync = false;
+    dbxSave();
+    notify('Mock Dropbox connected');
+    updateDropboxUI();
+    return;
+  }
   if (!isSecureContext) { notify('Dropbox sync needs HTTPS (or localhost)'); return; }
   dbx.appKey = key; dbxSave();
   const verifier = randomString(64);
@@ -1680,6 +1694,7 @@ async function dropboxHandleRedirect() {
 }
 
 async function dropboxRefreshIfNeeded() {
+  if (dbx.appKey === 'mock') return true;
   if (dbx.accessToken && Date.now() < dbx.expiresAt - 30000) return true;
   if (!dbx.refreshToken || !dbx.appKey) return !!dbx.accessToken;
   const res = await fetch('https://api.dropboxapi.com/oauth2/token', {
@@ -1716,7 +1731,22 @@ function dbxApplyData(d) {
   saveDB(); renderAll();
 }
 
+function syncNow() {
+  if (!dbx.accessToken) { dropboxConnect(); return; }
+  dropboxUpload();
+}
+
 async function dropboxUpload(silent) {
+  if (dbx.appKey === 'mock') {
+    setSyncing(true);
+    setTimeout(() => {
+      setSyncing(false);
+      const t = new Date().toLocaleString();
+      dbx.lastSync = t; dbx.lastSyncAt = Date.now(); dbxSave(); updateDropboxUI();
+      notify(silent ? 'Mock auto-synced' : 'Mock sync complete (no real upload)');
+    }, 900);
+    return;
+  }
   if (!await dropboxRefreshIfNeeded()) { if (!silent) notify('Dropbox session expired — reconnect'); return; }
   const snapshot = JSON.stringify(db);
   if (silent && snapshot === _lastUploadedState) return;
@@ -1738,6 +1768,7 @@ async function dropboxUpload(silent) {
 }
 
 async function dropboxDownload(skipConfirm) {
+  if (dbx.appKey === 'mock') { notify('Mock mode: no Dropbox backup to download'); return; }
   if (!await dropboxRefreshIfNeeded()) { notify('Dropbox session expired — reconnect'); return; }
   try {
     const res = await fetch('https://content.dropboxapi.com/2/files/download', {
@@ -1820,7 +1851,7 @@ function updateDropboxUI() {
   st.textContent = isConnected ? 'Connected' : 'Not connected';
   st.classList.toggle('connected', isConnected);
   const syncBtn = document.getElementById('syncBtn');
-  if (syncBtn) syncBtn.style.display = isConnected ? 'flex' : 'none';
+  if (syncBtn) syncBtn.style.display = 'flex';
 }
 updateDropboxUI();
 dropboxHandleRedirect();
@@ -2686,6 +2717,8 @@ logChangelog('fix', 'Main page no longer scrolls; full-height layout');
 logChangelog('change', 'Games always displayed in alphabetical order');
 logChangelog('change', 'Chains always displayed in alphabetical order');
 logChangelog('change', 'Gantt height adjusts dynamically to number of games');
+logChangelog('change', 'Sync button always visible with animated spin during sync');
+logChangelog('new', 'Mock Dropbox mode (enter "mock" to preview connected UI)');
 
 document.getElementById('searchInput').addEventListener('input', function() { updateSearchClear(); renderGameList(); });
 
