@@ -1863,6 +1863,8 @@ function renderGameList() {
     return true;
   });
 
+  games.sort((a, b) => a.title.toLowerCase().localeCompare(b.title.toLowerCase()));
+
   if (db.games.length === 0) {
     list.innerHTML = '<div class="empty-state"><div class="icon">&#127918;</div><h3>No games yet</h3><p>Click "+ Add" to add your first game.</p></div>';
     renderFilterCounts();
@@ -2323,6 +2325,13 @@ function renderGantt() {
 
   gantt.clearAll();
 
+  const taskCount = tasks.data.length;
+  const rowH = gantt.config.row_height || 36;
+  const scaleRows = 1 + (gantt.config.subscales ? gantt.config.subscales.length : 0);
+  const scaleH = gantt.config.scale_height || 28;
+  const dynHeight = Math.max(400, taskCount * rowH + scaleRows * scaleH + 4);
+  document.getElementById('ganttContainer').style.height = dynHeight + 'px';
+
   const today = new Date();
   today.setHours(0, 0, 0, 0);
 
@@ -2525,7 +2534,8 @@ function renderChains() {
   _chainDateCache = null;
   const chainDates = computeChainDates();
 
-  div.innerHTML = db.chains.map(c => {
+  const sortedChains = [...db.chains].sort((a, b) => a.name.toLowerCase().localeCompare(b.name.toLowerCase()));
+  div.innerHTML = sortedChains.map(c => {
     return `
       <div class="chain-card">
         <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
@@ -2673,6 +2683,9 @@ logChangelog('fix', 'Date mode toggle always on');
 logChangelog('change', 'Renamed date mode toggle to "Use Today for End"');
 logChangelog('fix', 'Date mode toggle overlapping text in add/edit modal');
 logChangelog('fix', 'Main page no longer scrolls; full-height layout');
+logChangelog('change', 'Games always displayed in alphabetical order');
+logChangelog('change', 'Chains always displayed in alphabetical order');
+logChangelog('change', 'Gantt height adjusts dynamically to number of games');
 
 document.getElementById('searchInput').addEventListener('input', function() { updateSearchClear(); renderGameList(); });
 
