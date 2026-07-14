@@ -55,14 +55,19 @@
     color: var(--text);
     height: 100vh;
     box-sizing: border-box;
-    padding-top: 0;
+    padding-top: 24px;
     display: flex;
     flex-direction: column;
     overflow: hidden;
   }
 
   .dev-banner {
-    display: none;
+    position: fixed; top: 0; left: 0; right: 0; z-index: 9999;
+    height: 24px;
+    display: flex; align-items: center; justify-content: center;
+    background: #dc2626; color: #fff;
+    font-size: 0.7rem; font-weight: 800; letter-spacing: 0.15em;
+    text-transform: uppercase;
   }
 
   header {
@@ -513,6 +518,29 @@
 
   [data-theme="dark"] .gantt_today {
     border-left: 2px solid var(--accent) !important;
+  }
+
+  .today-red-line {
+    position: absolute;
+    top: 0;
+    width: 2px;
+    height: 100%;
+    background: #e53935;
+    z-index: 6;
+    pointer-events: none;
+  }
+  .today-red-label {
+    position: absolute;
+    top: 2px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: #e53935;
+    color: #fff;
+    font-size: 0.65rem;
+    font-weight: 700;
+    padding: 1px 5px;
+    border-radius: 4px;
+    white-space: nowrap;
   }
 
   [data-theme="dark"] .gantt_task_line {
@@ -2386,6 +2414,40 @@ function renderGantt() {
 
   gantt.parse(tasks);
   gantt.showDate(today);
+
+  _todayDate = today;
+  drawTodayLine();
+}
+
+let _todayDate = null;
+
+function positionTodayLine() {
+  const cont = document.getElementById('ganttContainer');
+  const line = cont && cont.querySelector('.today-red-line');
+  if (!line || !_todayDate) return;
+  try {
+    const gridW = (gantt.$grid && gantt.$grid.offsetWidth) || (gantt.config.grid_width || 0);
+    const scrollX = (gantt.getScrollState && gantt.getScrollState().x) || 0;
+    const x = gridW + gantt.posFromDate(_todayDate) - scrollX;
+    line.style.left = x + 'px';
+  } catch (e) {}
+}
+
+function drawTodayLine() {
+  const cont = document.getElementById('ganttContainer');
+  if (!cont) return;
+  let line = cont.querySelector('.today-red-line');
+  if (!line) {
+    line = document.createElement('div');
+    line.className = 'today-red-line';
+    const lbl = document.createElement('span');
+    lbl.className = 'today-red-label';
+    lbl.textContent = 'Today';
+    line.appendChild(lbl);
+    cont.appendChild(line);
+  }
+  positionTodayLine();
+  setTimeout(positionTodayLine, 50);
 }
 
 gantt.config.readonly = true;
@@ -2427,6 +2489,9 @@ gantt.templates.tooltip_text = function(start, end, task) {
 };
 
 gantt.init('ganttContainer');
+gantt.attachEvent('onScroll', positionTodayLine);
+gantt.attachEvent('onGanttRender', positionTodayLine);
+window.addEventListener('resize', positionTodayLine);
 
 function ganttPrev() {
   try {
@@ -2713,6 +2778,7 @@ logChangelog('change', 'Games always displayed in alphabetical order');
 logChangelog('change', 'Chains always displayed in alphabetical order');
 logChangelog('change', 'Gantt height adjusts dynamically to number of games');
 logChangelog('change', 'Sync button always visible with animated spin during sync');
+logChangelog('change', 'Red "Today" marker line added to Gantt chart');
 
 document.getElementById('searchInput').addEventListener('input', function() { updateSearchClear(); renderGameList(); });
 
