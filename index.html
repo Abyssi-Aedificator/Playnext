@@ -53,7 +53,16 @@
     font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
     background: var(--bg);
     color: var(--text);
-    min-height: 100vh;
+    height: 100vh;
+    box-sizing: border-box;
+    padding-top: 0;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+  }
+
+  .dev-banner {
+    display: none;
   }
 
   header {
@@ -99,12 +108,13 @@
 
   .layout {
     display: flex;
-    height: calc(100vh - 52px);
+    flex: 1;
+    min-height: 0;
   }
 
   .sidebar {
-    width: 340px;
-    min-width: 340px;
+    width: 380px;
+    min-width: 380px;
     background: var(--bg2);
     border-right: 1px solid var(--border);
     display: flex;
@@ -400,7 +410,7 @@
 
   .form-row {
     display: grid;
-    grid-template-columns: 1fr 1fr;
+    grid-template-columns: 1.3fr 1fr;
     gap: 12px;
   }
 
@@ -1018,9 +1028,41 @@
   .dbx-toggle input:checked + .dbx-toggle-track { background: var(--accent); }
   .dbx-toggle input:checked + .dbx-toggle-track .dbx-toggle-thumb { transform: translateX(16px); background: #fff; }
   .dbx-toggle-label { font-size: 0.8rem; color: var(--text2); }
+
+  .cb-toggle {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    cursor: pointer;
+    user-select: none;
+  }
+  .form-group label.cb-toggle { display: flex; }
+  .cb-toggle input { display: none; }
+  .cb-track {
+    width: 28px;
+    height: 16px;
+    background: var(--border);
+    border-radius: 8px;
+    position: relative;
+    transition: background 0.2s;
+    flex-shrink: 0;
+  }
+  .cb-thumb {
+    width: 12px;
+    height: 12px;
+    background: var(--text2);
+    border-radius: 50%;
+    position: absolute;
+    top: 2px;
+    left: 2px;
+    transition: transform 0.2s, background 0.2s;
+  }
+  .cb-toggle input:checked + .cb-track { background: var(--accent); }
+  .cb-toggle input:checked + .cb-track .cb-thumb { transform: translateX(12px); background: #fff; }
 </style>
 </head>
 <body>
+<div class="dev-banner">DEV</div>
 
 <header>
   <h1>Play<span>Next</span></h1>
@@ -1042,7 +1084,7 @@
         <button class="search-clear" id="searchClear" onclick="document.getElementById('searchInput').value=''; renderGameList(); updateSearchClear();">&#10005;</button>
       </div>
       <button class="btn btn-sm" onclick="openAddModal()">+ Add</button>
-      <button id="syncBtn" onclick="dropboxUpload()" title="Sync to Dropbox"><span class="sync-ico">&#8635;</span></button>
+      <button id="syncBtn" onclick="syncNow()" title="Sync to Dropbox"><span class="sync-ico">&#8635;</span></button>
     </div>
     <div class="filter-bar" id="filterBar">
       <div class="custom-dropdown" id="filterDropdown">
@@ -1156,7 +1198,7 @@
             <p style="font-size:0.8rem;color:var(--text2);margin-bottom:12px;">Sync through your own Dropbox account so your gaming planner is available on all your devices. Your data goes straight from your browser to Dropbox &mdash; never through any server of ours.</p>
             <div id="dbxSetup">
               <label style="font-size:0.85rem;color:var(--text);margin-bottom:6px;display:block;">Dropbox App Key <a href="https://www.dropbox.com/developers/apps" target="_blank" rel="noopener" class="dbx-link">(get one free &rarr;)</a></label>
-              <input type="text" id="dbxKey" placeholder="e.g. abcd1234efgh567" autocomplete="off" spellcheck="false">
+              <input type="text" id="dbxKey" placeholder="e.g. abcd1234efgh567 (type 'mock' to preview)" autocomplete="off" spellcheck="false">
               <div style="margin-top:12px;">
                 <button class="btn btn-sm" onclick="dropboxConnect()">Connect to Dropbox</button>
               </div>
@@ -1207,6 +1249,10 @@
     </div>
     <div class="form-row">
       <div class="form-group">
+        <label>Start Date</label>
+        <input type="date" id="gameStartDate" oninput="previewEndDate()">
+      </div>
+      <div class="form-group">
         <label>Status</label>
         <select id="gameStatus">
           <option value="not-started">Not Started</option>
@@ -1214,39 +1260,34 @@
           <option value="completed">Completed</option>
         </select>
       </div>
-      <div class="form-group">
-        <label>Platform</label>
-        <input type="text" id="gamePlatform" placeholder="e.g. PC, PS5">
-      </div>
     </div>
     <div class="form-row">
       <div class="form-group">
-        <label>Start Date</label>
-        <input type="date" id="gameStartDate" oninput="previewEndDate()">
+        <label>Estimated End</label>
+        <div class="computed-date-display empty" id="gameEndDatePreview">Set date &amp; hours to see estimate</div>
+        <label class="cb-toggle" style="margin-top:8px;white-space:nowrap;">
+          <input type="checkbox" id="gameDateMode" checked>
+          <span class="cb-track"><span class="cb-thumb"></span></span>
+          <span style="font-size:0.75rem;color:var(--text2);">Use Today for End</span>
+        </label>
       </div>
       <div class="form-group">
-        <label>Estimated End Date (from Settings)</label>
-        <div class="computed-date-display empty" id="gameEndDatePreview">Set start date and hours to see estimate</div>
-      </div>
-    </div>
-    <div class="form-row">
-      <div class="form-group">
-        <label>Gantt Color</label>
+        <label>Color</label>
         <div id="modalColorSwatches"></div>
-        <div style="display:flex;align-items:center;gap:8px;margin-top:8px;">
-          <input type="color" id="gameColor" value="#888888" style="width:36px;height:32px;border:1px solid var(--border);border-radius:6px;cursor:pointer;background:none;padding:2px;">
+        <div style="display:flex;align-items:center;gap:8px;margin-top:6px;">
+          <input type="color" id="gameColor" value="#888888" style="width:30px;height:28px;border:1px solid var(--border);border-radius:6px;cursor:pointer;background:none;padding:2px;">
           <span style="font-size:0.75rem;color:var(--text2);">Custom</span>
-          <button type="button" class="btn btn-sm btn-outline" onclick="document.getElementById('gameColor').value='#888888';previewGameColor('gameColor','#888888');">Reset</button>
+          <button type="button" class="btn btn-sm btn-outline" style="margin-left:auto;" onclick="document.getElementById('gameColor').value='#888888';previewGameColor('gameColor','#888888');">Reset</button>
         </div>
       </div>
     </div>
     <div class="form-group">
       <label>Notes</label>
-      <textarea id="gameNotes" placeholder="Optional notes..."></textarea>
+      <textarea id="gameNotes" placeholder="Optional notes..." style="min-height:80px;"></textarea>
     </div>
     <div class="modal-actions">
       <button class="btn btn-outline" onclick="closeModal('gameModal')">Cancel</button>
-      <button class="btn" onclick="saveGame()">Save</button>
+      <button class="btn" onclick="saveGame()">&#10003; Save</button>
     </div>
   </div>
 </div>
@@ -1326,6 +1367,18 @@ function getWeeklyHours() {
   return getDailyHours().reduce((a, b) => a + b, 0);
 }
 
+function getAvgDailyHours() {
+  const daily = getDailyHours();
+  const active = daily.filter(h => h > 0);
+  return active.length > 0 ? active.reduce((a, b) => a + b, 0) / active.length : 0;
+}
+
+function getEstimatedDays(remainingHours) {
+  if (!remainingHours || remainingHours <= 0) return 0;
+  const avg = getAvgDailyHours();
+  return avg > 0 ? Math.ceil(remainingHours / avg) : 0;
+}
+
 function estimateEndDate(startDateStr, remainingHours) {
   if (!startDateStr || remainingHours <= 0) return null;
   const daily = getDailyHours();
@@ -1352,8 +1405,17 @@ function estimateEndDate(startDateStr, remainingHours) {
 function getGameEndDate(g) {
   if (g.status === 'completed') return null;
   const remaining = (g.totalHours || 0) - (g.hoursPlayed || 0);
-  if (!g.startDate || remaining <= 0) return null;
+  if (!g.startDate && remaining <= 0) return null;
+  if (!g.startDate || g.dateMode === 'today' || g.dateMode === undefined || g.dateMode === null) return getTodayEndDate(remaining);
   return estimateEndDate(g.startDate, remaining);
+}
+
+function getTodayEndDate(remainingHours) {
+  const days = getEstimatedDays(remainingHours);
+  if (days <= 0) return null;
+  const d = new Date();
+  d.setDate(d.getDate() + days);
+  return localDateStr(d);
 }
 
 function getChainInfo(gameId) {
@@ -1381,7 +1443,8 @@ function computeChainDates() {
       }
       if (!startDate) { currentDate = null; continue; }
       const remaining = (game.totalHours || 0) - (game.hoursPlayed || 0);
-      const endDate = remaining > 0 ? estimateEndDate(startDate, remaining) : null;
+      const timeMode = game.dateMode === 'today' && !currentDate;
+      const endDate = remaining > 0 ? (timeMode ? getTodayEndDate(remaining) : estimateEndDate(startDate, remaining)) : null;
       _chainDateCache[gameId] = { startDate, endDate, chainName: chain.name, chainIndex: chain.gameIds.indexOf(gameId), chainLength: chain.gameIds.length };
       if (endDate) currentDate = endDate;
     }
@@ -1434,7 +1497,6 @@ function saveSettings() {
   saveDB();
   renderSettingsSummary();
   renderAll();
-  logChangelog('change', 'Updated daily hours settings');
 }
 
 function loadSettingsUI() {
@@ -1482,7 +1544,6 @@ function applyPreset(name) {
   saveDB();
   loadSettingsUI();
   renderAll();
-  logChangelog('change', 'Applied preset "' + name + '"');
   notify('Preset applied');
 }
 
@@ -1499,15 +1560,15 @@ function notify(msg) {
 }
 
 const CHANGELOG_KEY = 'playnext_changelog';
-const CHANGELOG_VERSION = '1.0.0';
+const CHANGELOG_VERSION = '1.1.0';
 const CHANGELOG_TYPES = {
   'new': '&#10010;', 'change': '&#9998;', 'fix': '&#10006;'
 };
 
-function logChangelog(type, description) {
+function logChangelog(type, description, version) {
   let entries = [];
   try { entries = JSON.parse(localStorage.getItem(CHANGELOG_KEY)) || []; } catch(e) {}
-  entries.unshift({ id: genId(), version: CHANGELOG_VERSION, type, description, ts: new Date().toISOString() });
+  entries.unshift({ id: genId(), version: version || CHANGELOG_VERSION, type, description, ts: new Date().toISOString() });
   if (entries.length > 200) entries = entries.slice(0, 200);
   localStorage.setItem(CHANGELOG_KEY, JSON.stringify(entries));
 }
@@ -1521,7 +1582,9 @@ function renderChangelog() {
     div.innerHTML = '<div class="empty-state"><div class="icon">&#128221;</div><h3>No changes logged yet</h3><p>Actions like adding, updating, or deleting games will appear here.</p></div>';
     return;
   }
-  let html = '';
+  const newest = new Date(entries[0].ts);
+  const lastUpdateStr = newest.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) + ' ' + newest.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
+  let html = '<div style="font-size:0.8rem;color:var(--text2);padding-bottom:8px;">Last Update: <strong>' + lastUpdateStr + '</strong></div>';
   let lastDate = '';
   entries.forEach(e => {
     const d = new Date(e.ts);
@@ -1576,6 +1639,20 @@ async function pkceChallenge(verifier) {
 async function dropboxConnect() {
   const key = document.getElementById('dbxKey').value.trim();
   if (!key) { notify('Enter your Dropbox App key first'); return; }
+  if (key.toLowerCase() === 'mock') {
+    dbx.appKey = 'mock';
+    dbx.accessToken = 'mock-token';
+    dbx.refreshToken = 'mock-refresh';
+    dbx.expiresAt = Date.now() + 3600000;
+    dbx.account = 'mock.user@dropbox.com (mock)';
+    dbx.lastSync = '';
+    dbx.autoUpload = false;
+    dbx.autoSync = false;
+    dbxSave();
+    notify('Mock Dropbox connected');
+    updateDropboxUI();
+    return;
+  }
   if (!isSecureContext) { notify('Dropbox sync needs HTTPS (or localhost)'); return; }
   dbx.appKey = key; dbxSave();
   const verifier = randomString(64);
@@ -1612,6 +1689,7 @@ async function dropboxHandleRedirect() {
 }
 
 async function dropboxRefreshIfNeeded() {
+  if (dbx.appKey === 'mock') return true;
   if (dbx.accessToken && Date.now() < dbx.expiresAt - 30000) return true;
   if (!dbx.refreshToken || !dbx.appKey) return !!dbx.accessToken;
   const res = await fetch('https://api.dropboxapi.com/oauth2/token', {
@@ -1648,7 +1726,22 @@ function dbxApplyData(d) {
   saveDB(); renderAll();
 }
 
+function syncNow() {
+  if (!dbx.accessToken) { dropboxConnect(); return; }
+  dropboxUpload();
+}
+
 async function dropboxUpload(silent) {
+  if (dbx.appKey === 'mock') {
+    setSyncing(true);
+    setTimeout(() => {
+      setSyncing(false);
+      const t = new Date().toLocaleString();
+      dbx.lastSync = t; dbx.lastSyncAt = Date.now(); dbxSave(); updateDropboxUI();
+      notify(silent ? 'Mock auto-synced' : 'Mock sync complete (no real upload)');
+    }, 900);
+    return;
+  }
   if (!await dropboxRefreshIfNeeded()) { if (!silent) notify('Dropbox session expired — reconnect'); return; }
   const snapshot = JSON.stringify(db);
   if (silent && snapshot === _lastUploadedState) return;
@@ -1670,6 +1763,7 @@ async function dropboxUpload(silent) {
 }
 
 async function dropboxDownload(skipConfirm) {
+  if (dbx.appKey === 'mock') { notify('Mock mode: no Dropbox backup to download'); return; }
   if (!await dropboxRefreshIfNeeded()) { notify('Dropbox session expired — reconnect'); return; }
   try {
     const res = await fetch('https://content.dropboxapi.com/2/files/download', {
@@ -1752,7 +1846,7 @@ function updateDropboxUI() {
   st.textContent = isConnected ? 'Connected' : 'Not connected';
   st.classList.toggle('connected', isConnected);
   const syncBtn = document.getElementById('syncBtn');
-  if (syncBtn) syncBtn.style.display = isConnected ? 'flex' : 'none';
+  if (syncBtn) syncBtn.style.display = 'flex';
 }
 updateDropboxUI();
 dropboxHandleRedirect();
@@ -1794,6 +1888,8 @@ function renderGameList() {
     if (search && !g.title.toLowerCase().includes(search)) return false;
     return true;
   });
+
+  games.sort((a, b) => a.title.toLowerCase().localeCompare(b.title.toLowerCase()));
 
   if (db.games.length === 0) {
     list.innerHTML = '<div class="empty-state"><div class="icon">&#127918;</div><h3>No games yet</h3><p>Click "+ Add" to add your first game.</p></div>';
@@ -1869,11 +1965,11 @@ function openAddModal() {
   document.getElementById('gameTotalHours').value = '';
   document.getElementById('gameHoursPlayed').value = '';
   document.getElementById('gameStatus').value = 'not-started';
-  document.getElementById('gamePlatform').value = '';
   document.getElementById('gameStartDate').value = '';
   document.getElementById('gameNotes').value = '';
   document.getElementById('gameColor').value = '#888888';
   renderModalSwatches('#888888');
+  document.getElementById('gameDateMode').checked = true;
   document.getElementById('gameModal').classList.add('open');
   document.getElementById('gameTitle').focus();
   previewEndDate();
@@ -1888,11 +1984,11 @@ function openEditModal(id) {
   document.getElementById('gameTotalHours').value = g.totalHours || '';
   document.getElementById('gameHoursPlayed').value = g.hoursPlayed || '';
   document.getElementById('gameStatus').value = g.status;
-  document.getElementById('gamePlatform').value = g.platform || '';
   document.getElementById('gameStartDate').value = g.startDate || '';
   document.getElementById('gameNotes').value = g.notes || '';
   document.getElementById('gameColor').value = g.color || '#888888';
   renderModalSwatches(g.color || '#888888');
+  document.getElementById('gameDateMode').checked = g.dateMode !== 'chain';
   document.getElementById('gameModal').classList.add('open');
   previewEndDate();
 }
@@ -1911,10 +2007,10 @@ function saveGame() {
     totalHours: parseFloat(document.getElementById('gameTotalHours').value) || 0,
     hoursPlayed: parseFloat(document.getElementById('gameHoursPlayed').value) || 0,
     status: document.getElementById('gameStatus').value,
-    platform: document.getElementById('gamePlatform').value.trim(),
     startDate: document.getElementById('gameStartDate').value,
     notes: document.getElementById('gameNotes').value.trim(),
-    color: document.getElementById('gameColor').value
+    color: document.getElementById('gameColor').value,
+    dateMode: document.getElementById('gameDateMode').checked ? 'today' : 'chain'
   };
 
   if (data.status === 'completed') {
@@ -1951,7 +2047,6 @@ function saveGame() {
   saveDB();
   closeModal('gameModal');
   renderAll();
-  logChangelog(id ? 'change' : 'new', (id ? 'Updated' : 'Added') + ' game "' + title + '"');
   notify(id ? 'Game updated' : 'Game added');
 }
 
@@ -1965,7 +2060,6 @@ function deleteGame(id) {
   if (selectedGameId === id) selectedGameId = null;
   saveDB();
   renderAll();
-  logChangelog('fix', 'Deleted game "' + title + '"');
   notify('Game deleted');
 }
 
@@ -2048,7 +2142,7 @@ function renderDetail() {
           <span class="unit">/ ${g.totalHours || 0}h</span>
         </div>
         <div class="hours-bar" style="margin-top:8px;"><div class="fill" style="width:${pct}%;background:${g.status==='completed'?'var(--green)':g.status==='in-progress'?'var(--yellow)':'#555'};"></div></div>
-        <div style="font-size:0.8rem;color:var(--text2);margin-top:6px;">${Math.round(pct)}% complete &middot; ${remaining}h remaining</div>
+        <div style="font-size:0.8rem;color:var(--text2);margin-top:6px;">${Math.round(pct)}% complete &middot; ${remaining}h remaining &middot; ~${getEstimatedDays(remaining)} days left</div>
       </div>
       <div class="detail-box">
         <h4>Update Hours</h4>
@@ -2082,6 +2176,13 @@ function renderDetail() {
             }
             return '<div style="color:var(--text2);">No start date</div>' + chainNote;
           })()}
+        </div>
+        <div style="margin-top:8px;display:flex;align-items:center;gap:6px;font-size:0.8rem;color:var(--text2);">
+          <label class="cb-toggle">
+            <input type="checkbox" ${g.dateMode==='today'?'checked':''} onchange="setDateMode('${g.id}',this.checked)">
+            <span class="cb-track"><span class="cb-thumb"></span></span>
+            Use Today for End
+          </label>
         </div>
       </div>
       <div class="detail-box">
@@ -2132,7 +2233,6 @@ function quickUpdateHours(id) {
   else if (g.hoursPlayed > 0 && g.status === 'not-started') { g.status = 'in-progress'; }
   saveDB();
   renderAll();
-  logChangelog('change', 'Added ' + add + 'h to "' + g.title + '" (' + g.hoursPlayed + '/' + (g.totalHours || '?') + 'h)');
   notify('Hours updated');
 }
 
@@ -2146,7 +2246,6 @@ function quickSetHours(id) {
   else if (g.hoursPlayed > 0 && g.status === 'not-started') { g.status = 'in-progress'; }
   saveDB();
   renderAll();
-  logChangelog('change', 'Set "' + g.title + '" hours to ' + g.hoursPlayed + '/' + (g.totalHours || '?') + 'h');
   notify('Hours updated');
 }
 
@@ -2173,7 +2272,6 @@ function changeStatus(id, val) {
   if (val === 'in-progress' && !g.startDate) g.startDate = today;
   saveDB();
   renderAll();
-  logChangelog('change', 'Changed "' + g.title + '" status to ' + val.replace('-', ' '));
 }
 
 function setGameColor(id, color) {
@@ -2182,7 +2280,14 @@ function setGameColor(id, color) {
   g.color = color || '';
   saveDB();
   renderAll();
-  logChangelog('change', 'Changed color of "' + g.title + '"');
+}
+
+function setDateMode(id, useToday) {
+  const g = db.games.find(x => x.id === id);
+  if (!g) return;
+  g.dateMode = useToday ? 'today' : 'chain';
+  saveDB();
+  renderAll();
 }
 
 // Gantt Chart
@@ -2245,6 +2350,13 @@ function renderGantt() {
   });
 
   gantt.clearAll();
+
+  const taskCount = tasks.data.length;
+  const rowH = gantt.config.row_height || 36;
+  const scaleRows = 1 + (gantt.config.subscales ? gantt.config.subscales.length : 0);
+  const scaleH = gantt.config.scale_height || 28;
+  const dynHeight = Math.max(400, taskCount * rowH + scaleRows * scaleH + 4);
+  document.getElementById('ganttContainer').style.height = dynHeight + 'px';
 
   const today = new Date();
   today.setHours(0, 0, 0, 0);
@@ -2311,8 +2423,7 @@ gantt.templates.tooltip_text = function(start, end, task) {
   if (!game) return '';
   const pct = game.totalHours > 0 ? Math.round((game.hoursPlayed / game.totalHours) * 100) : 0;
   return '<b>' + esc(game.title) + '</b><br>Status: ' + game.status.replace('-', ' ') +
-    '<br>Hours: ' + (game.hoursPlayed || 0) + ' / ' + (game.totalHours || 0) + ' (' + pct + '%)' +
-    (game.platform ? '<br>Platform: ' + esc(game.platform) : '');
+    '<br>Hours: ' + (game.hoursPlayed || 0) + ' / ' + (game.totalHours || 0) + ' (' + pct + '%)';
 };
 
 gantt.init('ganttContainer');
@@ -2426,7 +2537,6 @@ function saveChain() {
   saveDB();
   closeModal('chainModal');
   renderAll();
-  logChangelog(id ? 'change' : 'new', (id ? 'Updated' : 'Created') + ' chain "' + name + '" (' + tempChainGames.length + ' games)');
   notify(id ? 'Chain updated' : 'Chain created');
 }
 
@@ -2437,7 +2547,6 @@ function deleteChain(id) {
   db.chains = db.chains.filter(x => x.id !== id);
   saveDB();
   renderAll();
-  logChangelog('fix', 'Deleted chain "' + name + '"');
   notify('Chain deleted');
 }
 
@@ -2451,7 +2560,8 @@ function renderChains() {
   _chainDateCache = null;
   const chainDates = computeChainDates();
 
-  div.innerHTML = db.chains.map(c => {
+  const sortedChains = [...db.chains].sort((a, b) => a.name.toLowerCase().localeCompare(b.name.toLowerCase()));
+  div.innerHTML = sortedChains.map(c => {
     return `
       <div class="chain-card">
         <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
@@ -2579,8 +2689,30 @@ loadDB();
 renderAll();
 loadSettingsUI();
 
-const cl = JSON.parse(localStorage.getItem('playnext_changelog') || '[]');
-if (cl.length === 0) logChangelog('new', 'App initialized');
+localStorage.removeItem('playnext_changelog');
+logChangelog('new', 'App initialized', '1.0.0');
+logChangelog('new', 'PWA support');
+logChangelog('new', 'Dropbox sync');
+logChangelog('new', 'Search bar clear button');
+logChangelog('new', 'Changelog tab');
+logChangelog('new', 'Theme and accent picker');
+logChangelog('change', 'Today-based date as default end date mode');
+logChangelog('change', 'Custom toggle switches');
+logChangelog('change', 'Selectable end date calculation');
+logChangelog('change', 'Gantt viewport defaults to Today');
+logChangelog('fix', 'UTC date issues');
+logChangelog('fix', 'Gantt scrolled far from Today');
+logChangelog('change', 'Redesigned add/edit game modal');
+logChangelog('new', 'Dev banner indicator');
+logChangelog('fix', 'Platform field removed from add/edit modal');
+logChangelog('fix', 'Date mode toggle always on');
+logChangelog('change', 'Renamed date mode toggle to "Use Today for End"');
+logChangelog('fix', 'Date mode toggle overlapping text in add/edit modal');
+logChangelog('fix', 'Main page no longer scrolls; full-height layout');
+logChangelog('change', 'Games always displayed in alphabetical order');
+logChangelog('change', 'Chains always displayed in alphabetical order');
+logChangelog('change', 'Gantt height adjusts dynamically to number of games');
+logChangelog('change', 'Sync button always visible with animated spin during sync');
 
 document.getElementById('searchInput').addEventListener('input', function() { updateSearchClear(); renderGameList(); });
 
