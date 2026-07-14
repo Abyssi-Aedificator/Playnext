@@ -245,6 +245,17 @@
     padding: 8px;
   }
 
+  .chain-group-header {
+    padding: 10px 8px 4px;
+    font-size: 0.7rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    color: var(--accent);
+    border-bottom: 1px solid var(--border);
+    margin: 6px 0 4px;
+  }
+
   .game-card {
     background: var(--card);
     border: 1px solid var(--border);
@@ -1588,7 +1599,7 @@ function notify(msg) {
 }
 
 const CHANGELOG_KEY = 'playnext_changelog';
-const CHANGELOG_VERSION = '1.1.0';
+const CHANGELOG_VERSION = '1.1.1';
 const CHANGELOG_TYPES = {
   'new': '&#10010;', 'change': '&#9998;', 'fix': '&#10006;'
 };
@@ -1917,7 +1928,13 @@ function renderGameList() {
     return true;
   });
 
-  games.sort((a, b) => a.title.toLowerCase().localeCompare(b.title.toLowerCase()));
+  let html = '';
+  const chainOf = {};
+  db.chains.forEach(c => c.gameIds.forEach((gid, i) => { if (!chainOf[gid]) chainOf[gid] = { chain: c, index: i }; }));
+
+  const byTitle = (a, b) => a.title.toLowerCase().localeCompare(b.title.toLowerCase());
+  const standalone = games.filter(g => !chainOf[g.id]).sort(byTitle);
+  const chainsSorted = [...db.chains].sort((a, b) => a.name.toLowerCase().localeCompare(b.name.toLowerCase()));
 
   if (db.games.length === 0) {
     list.innerHTML = '<div class="empty-state"><div class="icon">&#127918;</div><h3>No games yet</h3><p>Click "+ Add" to add your first game.</p></div>';
@@ -1925,37 +1942,50 @@ function renderGameList() {
     return;
   }
 
-  if (games.length === 0) {
+  const hasAnyMatch = standalone.length > 0 || chainsSorted.some(c => c.gameIds.some(id => games.find(g => g.id === id)));
+  if (!hasAnyMatch) {
     list.innerHTML = '<div class="empty-state" style="padding:30px 20px;"><h3>No matches</h3><p>Try a different filter or search.</p></div>';
     renderFilterCounts();
     return;
   }
 
-  list.innerHTML = games.map(g => {
-    const pct = g.totalHours > 0 ? Math.min(100, (g.hoursPlayed / g.totalHours) * 100) : 0;
-    const barColor = g.status === 'completed' ? 'var(--green)' : g.status === 'in-progress' ? 'var(--yellow)' : '#555';
-    const isLocked = isGameLocked(g.id);
-    const isSelected = g.id === selectedGameId;
-    const remaining = Math.max(0, (g.totalHours || 0) - (g.hoursPlayed || 0));
-    const estDate = (remaining > 0 && g.startDate && g.status !== 'completed') ? getEffectiveEndDate(g) : null;
-    const hasHours = g.totalHours > 0;
-    const daysLeft = estDate ? Math.round((new Date(estDate) - new Date()) / 86400000) : null;
-    return `
-      <div class="game-card ${isSelected ? 'selected' : ''} ${isLocked ? 'locked' : ''}" onclick="selectGame('${g.id}')">
-        ${isLocked ? '<span class="lock-icon" title="Locked - complete prequel first">&#128274;</span>' : ''}
-        <div class="title">${g.color ? '<span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:'+g.color+';margin-right:6px;vertical-align:middle;"></span>' : ''}${esc(g.title)}</div>
-        <div class="meta">
-          <span class="status-badge status-${g.status}">${g.status.replace('-',' ')}</span>
-          ${g.platform ? '<span>'+esc(g.platform)+'</span>' : ''}
-          ${hasHours ? '<span>'+g.hoursPlayed+'h / '+g.totalHours+'h</span>' : ''}
-          ${hasHours ? '<span>'+Math.round(pct)+'%</span>' : ''}
-          ${estDate ? '<span class="estimated-badge">~'+estDate+'</span>' : ''}
-        </div>
-        ${hasHours ? '<div class="hours-bar"><div class="fill" style="width:'+pct+'%;background:'+barColor+';"></div></div>' : ''}
-      </div>
-    `;
-  }).join('');
+  if (standalone.length) {
+    html += '<div class="chain-group-header">Other Games</div>';
+    html += standalone.map(gameCardHTML).join('');
+  }
+  chainsSorted.forEach(c => {
+    const cgames = c.gameIds.map(id => games.find(g => g.id === id)).filter(Boolean);
+    if (!cgames.length) return;
+    html += '<div class="chain-group-header">' + esc(c.name) + '</div>';
+    html += cgames.map(gameCardHTML).join('');
+  });
+
+  list.innerHTML = html;
   renderFilterCounts();
+}
+
+function gameCardHTML(g) {
+  const pct = g.totalHours > 0 ? Math.min(100, (g.hoursPlayed / g.totalHours) * 100) : 0;
+  const barColor = g.status === 'completed' ? 'var(--green)' : g.status === 'in-progress' ? 'var(--yellow)' : '#555';
+  const isLocked = isGameLocked(g.id);
+  const isSelected = g.id === selectedGameId;
+  const remaining = Math.max(0, (g.totalHours || 0) - (g.hoursPlayed || 0));
+  const estDate = (remaining > 0 && g.startDate && g.status !== 'completed') ? getEffectiveEndDate(g) : null;
+  const hasHours = g.totalHours > 0;
+  return `
+    <div class="game-card ${isSelected ? 'selected' : ''} ${isLocked ? 'locked' : ''}" onclick="selectGame('${g.id}')">
+      ${isLocked ? '<span class="lock-icon" title="Locked - complete prequel first">&#128274;</span>' : ''}
+      <div class="title">${g.color ? '<span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:'+g.color+';margin-right:6px;vertical-align:middle;"></span>' : ''}${esc(g.title)}</div>
+      <div class="meta">
+        <span class="status-badge status-${g.status}">${g.status.replace('-',' ')}</span>
+        ${g.platform ? '<span>'+esc(g.platform)+'</span>' : ''}
+        ${hasHours ? '<span>'+g.hoursPlayed+'h / '+g.totalHours+'h</span>' : ''}
+        ${hasHours ? '<span>'+Math.round(pct)+'%</span>' : ''}
+        ${estDate ? '<span class="estimated-badge">~'+estDate+'</span>' : ''}
+      </div>
+      ${hasHours ? '<div class="hours-bar"><div class="fill" style="width:'+pct+'%;background:'+barColor+';"></div></div>' : ''}
+    </div>
+  `;
 }
 
 function esc(s) {
@@ -2323,10 +2353,24 @@ function renderGantt() {
   _chainDateCache = null;
   const chainDates = computeChainDates();
 
-  const allGames = db.games.filter(g => {
+  const filtered = db.games.filter(g => {
     if (g.status === 'completed') return false;
     if (chainDates[g.id]) return chainDates[g.id].endDate;
     return g.startDate && (getGameEndDate(g) || g.status === 'in-progress');
+  });
+
+  const chainOf = {};
+  db.chains.forEach(c => c.gameIds.forEach((gid, i) => { if (!chainOf[gid]) chainOf[gid] = { chain: c, index: i }; }));
+  const byTitle = (a, b) => a.title.toLowerCase().localeCompare(b.title.toLowerCase());
+  const standalone = filtered.filter(g => !chainOf[g.id]).sort(byTitle);
+  const chainsSorted = [...db.chains].sort((a, b) => a.name.toLowerCase().localeCompare(b.name.toLowerCase()));
+  const allGames = [];
+  standalone.forEach(g => allGames.push(g));
+  chainsSorted.forEach(c => {
+    c.gameIds.forEach(id => {
+      const g = filtered.find(x => x.id === id);
+      if (g) allGames.push(g);
+    });
   });
 
   const tasks = { data: [], links: [] };
@@ -2756,29 +2800,30 @@ loadSettingsUI();
 
 localStorage.removeItem('playnext_changelog');
 logChangelog('new', 'App initialized', '1.0.0');
-logChangelog('new', 'PWA support');
-logChangelog('new', 'Dropbox sync');
-logChangelog('new', 'Search bar clear button');
-logChangelog('new', 'Changelog tab');
-logChangelog('new', 'Theme and accent picker');
-logChangelog('change', 'Today-based date as default end date mode');
-logChangelog('change', 'Custom toggle switches');
-logChangelog('change', 'Selectable end date calculation');
-logChangelog('change', 'Gantt viewport defaults to Today');
-logChangelog('fix', 'UTC date issues');
-logChangelog('fix', 'Gantt scrolled far from Today');
-logChangelog('change', 'Redesigned add/edit game modal');
-logChangelog('new', 'Dev banner indicator');
-logChangelog('fix', 'Platform field removed from add/edit modal');
-logChangelog('fix', 'Date mode toggle always on');
-logChangelog('change', 'Renamed date mode toggle to "Use Today for End"');
-logChangelog('fix', 'Date mode toggle overlapping text in add/edit modal');
-logChangelog('fix', 'Main page no longer scrolls; full-height layout');
-logChangelog('change', 'Games always displayed in alphabetical order');
-logChangelog('change', 'Chains always displayed in alphabetical order');
-logChangelog('change', 'Gantt height adjusts dynamically to number of games');
-logChangelog('change', 'Sync button always visible with animated spin during sync');
-logChangelog('change', 'Red "Today" marker line added to Gantt chart');
+logChangelog('new', 'PWA support', '1.1.0');
+logChangelog('new', 'Dropbox sync', '1.1.0');
+logChangelog('new', 'Search bar clear button', '1.1.0');
+logChangelog('new', 'Changelog tab', '1.1.0');
+logChangelog('new', 'Theme and accent picker', '1.1.0');
+logChangelog('change', 'Today-based date as default end date mode', '1.1.0');
+logChangelog('change', 'Custom toggle switches', '1.1.0');
+logChangelog('change', 'Selectable end date calculation', '1.1.0');
+logChangelog('change', 'Gantt viewport defaults to Today', '1.1.0');
+logChangelog('fix', 'UTC date issues', '1.1.0');
+logChangelog('fix', 'Gantt scrolled far from Today', '1.1.0');
+logChangelog('change', 'Redesigned add/edit game modal', '1.1.0');
+logChangelog('new', 'Dev banner indicator', '1.1.0');
+logChangelog('fix', 'Platform field removed from add/edit modal', '1.1.0');
+logChangelog('fix', 'Date mode toggle always on', '1.1.0');
+logChangelog('change', 'Renamed date mode toggle to "Use Today for End"', '1.1.0');
+logChangelog('fix', 'Date mode toggle overlapping text in add/edit modal', '1.1.0');
+logChangelog('fix', 'Main page no longer scrolls; full-height layout', '1.1.0');
+logChangelog('change', 'Games always displayed in alphabetical order', '1.1.0');
+logChangelog('change', 'Chains always displayed in alphabetical order', '1.1.0');
+logChangelog('change', 'Gantt height adjusts dynamically to number of games', '1.1.0');
+logChangelog('change', 'Sync button always visible with animated spin during sync', '1.1.0');
+logChangelog('change', 'Games grouped by chain (alphabetical), play order preserved within chain', '1.1.1');
+logChangelog('change', 'Red "Today" marker line added to Gantt chart', '1.1.1');
 
 document.getElementById('searchInput').addEventListener('input', function() { updateSearchClear(); renderGameList(); });
 
