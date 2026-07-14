@@ -54,6 +54,16 @@
     background: var(--bg);
     color: var(--text);
     min-height: 100vh;
+    padding-top: 24px;
+  }
+
+  .dev-banner {
+    position: fixed; top: 0; left: 0; right: 0; z-index: 9999;
+    height: 24px;
+    display: flex; align-items: center; justify-content: center;
+    background: #dc2626; color: #fff;
+    font-size: 0.7rem; font-weight: 800; letter-spacing: 0.15em;
+    text-transform: uppercase;
   }
 
   header {
@@ -99,7 +109,7 @@
 
   .layout {
     display: flex;
-    height: calc(100vh - 52px);
+    height: calc(100vh - 74px);
   }
 
   .sidebar {
@@ -1018,9 +1028,40 @@
   .dbx-toggle input:checked + .dbx-toggle-track { background: var(--accent); }
   .dbx-toggle input:checked + .dbx-toggle-track .dbx-toggle-thumb { transform: translateX(16px); background: #fff; }
   .dbx-toggle-label { font-size: 0.8rem; color: var(--text2); }
+
+  .cb-toggle {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    cursor: pointer;
+    user-select: none;
+  }
+  .cb-toggle input { display: none; }
+  .cb-track {
+    width: 28px;
+    height: 16px;
+    background: var(--border);
+    border-radius: 8px;
+    position: relative;
+    transition: background 0.2s;
+    flex-shrink: 0;
+  }
+  .cb-thumb {
+    width: 12px;
+    height: 12px;
+    background: var(--text2);
+    border-radius: 50%;
+    position: absolute;
+    top: 2px;
+    left: 2px;
+    transition: transform 0.2s, background 0.2s;
+  }
+  .cb-toggle input:checked + .cb-track { background: var(--accent); }
+  .cb-toggle input:checked + .cb-track .cb-thumb { transform: translateX(12px); background: #fff; }
 </style>
 </head>
 <body>
+<div class="dev-banner">DEV</div>
 
 <header>
   <h1>Play<span>Next</span></h1>
@@ -1326,6 +1367,18 @@ function getWeeklyHours() {
   return getDailyHours().reduce((a, b) => a + b, 0);
 }
 
+function getAvgDailyHours() {
+  const daily = getDailyHours();
+  const active = daily.filter(h => h > 0);
+  return active.length > 0 ? active.reduce((a, b) => a + b, 0) / active.length : 0;
+}
+
+function getEstimatedDays(remainingHours) {
+  if (!remainingHours || remainingHours <= 0) return 0;
+  const avg = getAvgDailyHours();
+  return avg > 0 ? Math.ceil(remainingHours / avg) : 0;
+}
+
 function estimateEndDate(startDateStr, remainingHours) {
   if (!startDateStr || remainingHours <= 0) return null;
   const daily = getDailyHours();
@@ -1352,8 +1405,17 @@ function estimateEndDate(startDateStr, remainingHours) {
 function getGameEndDate(g) {
   if (g.status === 'completed') return null;
   const remaining = (g.totalHours || 0) - (g.hoursPlayed || 0);
-  if (!g.startDate || remaining <= 0) return null;
+  if (!g.startDate && remaining <= 0) return null;
+  if (!g.startDate || g.dateMode === 'today' || g.dateMode === undefined || g.dateMode === null || g.dateMode === '') return getTodayEndDate(remaining);
   return estimateEndDate(g.startDate, remaining);
+}
+
+function getTodayEndDate(remainingHours) {
+  const days = getEstimatedDays(remainingHours);
+  if (days <= 0) return null;
+  const d = new Date();
+  d.setDate(d.getDate() + days);
+  return localDateStr(d);
 }
 
 function getChainInfo(gameId) {
@@ -1381,7 +1443,8 @@ function computeChainDates() {
       }
       if (!startDate) { currentDate = null; continue; }
       const remaining = (game.totalHours || 0) - (game.hoursPlayed || 0);
-      const endDate = remaining > 0 ? estimateEndDate(startDate, remaining) : null;
+      const timeMode = game.dateMode === 'today' && !currentDate;
+      const endDate = remaining > 0 ? (timeMode ? getTodayEndDate(remaining) : estimateEndDate(startDate, remaining)) : null;
       _chainDateCache[gameId] = { startDate, endDate, chainName: chain.name, chainIndex: chain.gameIds.indexOf(gameId), chainLength: chain.gameIds.length };
       if (endDate) currentDate = endDate;
     }
@@ -1499,7 +1562,7 @@ function notify(msg) {
 }
 
 const CHANGELOG_KEY = 'playnext_changelog';
-const CHANGELOG_VERSION = '1.0.0';
+const CHANGELOG_VERSION = '1.1.0';
 const CHANGELOG_TYPES = {
   'new': '&#10010;', 'change': '&#9998;', 'fix': '&#10006;'
 };
@@ -1521,7 +1584,9 @@ function renderChangelog() {
     div.innerHTML = '<div class="empty-state"><div class="icon">&#128221;</div><h3>No changes logged yet</h3><p>Actions like adding, updating, or deleting games will appear here.</p></div>';
     return;
   }
-  let html = '';
+  const newest = new Date(entries[0].ts);
+  const lastUpdateStr = newest.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) + ' ' + newest.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
+  let html = '<div style="font-size:0.8rem;color:var(--text2);padding-bottom:8px;">Last Update: <strong>' + lastUpdateStr + '</strong></div>';
   let lastDate = '';
   entries.forEach(e => {
     const d = new Date(e.ts);
@@ -2048,7 +2113,7 @@ function renderDetail() {
           <span class="unit">/ ${g.totalHours || 0}h</span>
         </div>
         <div class="hours-bar" style="margin-top:8px;"><div class="fill" style="width:${pct}%;background:${g.status==='completed'?'var(--green)':g.status==='in-progress'?'var(--yellow)':'#555'};"></div></div>
-        <div style="font-size:0.8rem;color:var(--text2);margin-top:6px;">${Math.round(pct)}% complete &middot; ${remaining}h remaining</div>
+        <div style="font-size:0.8rem;color:var(--text2);margin-top:6px;">${Math.round(pct)}% complete &middot; ${remaining}h remaining &middot; ~${getEstimatedDays(remaining)} days left</div>
       </div>
       <div class="detail-box">
         <h4>Update Hours</h4>
@@ -2082,6 +2147,13 @@ function renderDetail() {
             }
             return '<div style="color:var(--text2);">No start date</div>' + chainNote;
           })()}
+        </div>
+        <div style="margin-top:8px;display:flex;align-items:center;gap:8px;font-size:0.8rem;color:var(--text2);">
+          <label class="cb-toggle">
+            <input type="checkbox" ${g.dateMode!=='chain'?'checked':''} onchange="setDateMode('${g.id}',this.checked)">
+            <span class="cb-track"><span class="cb-thumb"></span></span>
+            Use today + avg daily hours instead
+          </label>
         </div>
       </div>
       <div class="detail-box">
@@ -2183,6 +2255,14 @@ function setGameColor(id, color) {
   saveDB();
   renderAll();
   logChangelog('change', 'Changed color of "' + g.title + '"');
+}
+
+function setDateMode(id, useToday) {
+  const g = db.games.find(x => x.id === id);
+  if (!g) return;
+  g.dateMode = useToday ? 'today' : '';
+  saveDB();
+  renderAll();
 }
 
 // Gantt Chart
@@ -2579,8 +2659,19 @@ loadDB();
 renderAll();
 loadSettingsUI();
 
-const cl = JSON.parse(localStorage.getItem('playnext_changelog') || '[]');
-if (cl.length === 0) logChangelog('new', 'App initialized');
+localStorage.removeItem('playnext_changelog');
+logChangelog('new', 'App initialized');
+logChangelog('new', 'PWA support');
+logChangelog('new', 'Dropbox sync');
+logChangelog('new', 'Search bar clear button');
+logChangelog('new', 'Changelog tab');
+logChangelog('new', 'Theme and accent picker');
+logChangelog('change', 'Today-based date as default end date mode');
+logChangelog('change', 'Custom toggle switches');
+logChangelog('change', 'Selectable end date calculation');
+logChangelog('change', 'Gantt viewport defaults to Today');
+logChangelog('fix', 'UTC date issues');
+logChangelog('fix', 'Gantt scrolled far from Today');
 
 document.getElementById('searchInput').addEventListener('input', function() { updateSearchClear(); renderGameList(); });
 
