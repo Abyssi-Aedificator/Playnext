@@ -1,0 +1,2624 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>PlayNext - Gaming Planner</title>
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#e94560">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="PlayNext">
+<link rel="apple-touch-icon" href="icon-192.svg">
+<link rel="stylesheet" href="https://cdn.dhtmlx.com/gantt/edge/dhtmlxgantt.css">
+<script src="https://cdn.dhtmlx.com/gantt/edge/dhtmlxgantt.js"></script>
+<style>
+  :root {
+    --bg: #0f0f1a;
+    --bg2: #1a1a2e;
+    --bg3: #16213e;
+    --accent: #e94560;
+    --green: #00c853;
+    --yellow: #ffd600;
+    --text: #e0e0e0;
+    --text2: #8892b0;
+    --border: #2a2a4a;
+    --card: #1e1e3a;
+    --shadow: rgba(0,0,0,0.4);
+  }
+
+  [data-theme="light"] {
+    --bg: #f0f2f5;
+    --bg2: #ffffff;
+    --bg3: #e8eaed;
+    --accent: #d63851;
+    --green: #00a844;
+    --yellow: #d4a800;
+    --text: #1a1a2e;
+    --text2: #5a6275;
+    --border: #d0d4dc;
+    --card: #ffffff;
+    --shadow: rgba(0,0,0,0.1);
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  *::-webkit-scrollbar { width: 6px; height: 6px; }
+  *::-webkit-scrollbar-track { background: transparent; }
+  *::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+  *::-webkit-scrollbar-thumb:hover { background: var(--accent); }
+  * { scrollbar-width: thin; scrollbar-color: var(--border) transparent; }
+
+  body {
+    font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+  }
+
+  header {
+    background: var(--bg2);
+    border-bottom: 2px solid var(--accent);
+    padding: 12px 24px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    position: sticky;
+    top: 0;
+    z-index: 100;
+  }
+
+  header h1 {
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: var(--accent);
+    letter-spacing: 1px;
+  }
+
+  header h1 span { color: var(--text); font-weight: 400; }
+
+  .stats-bar {
+    display: flex;
+    gap: 20px;
+    font-size: 0.85rem;
+  }
+
+  .stat-item {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+
+  .stat-item .num {
+    font-weight: 700;
+    font-size: 1.1rem;
+    color: var(--accent);
+  }
+
+  .stat-item .label { color: var(--text2); }
+
+  .layout {
+    display: flex;
+    height: calc(100vh - 52px);
+  }
+
+  .sidebar {
+    width: 340px;
+    min-width: 340px;
+    background: var(--bg2);
+    border-right: 1px solid var(--border);
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+  }
+
+  .sidebar-header {
+    padding: 12px 16px;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    gap: 8px;
+    align-items: center;
+  }
+
+  .sidebar-header input {
+    flex: 1;
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 8px 12px;
+    color: var(--text);
+    font-size: 0.9rem;
+    outline: none;
+  }
+
+  .sidebar-header input:focus { border-color: var(--accent); }
+
+  .search-wrap {
+    flex: 1;
+    position: relative;
+  }
+  .search-wrap input { width: 100%; box-sizing: border-box; padding-right: 30px !important; }
+  .search-clear {
+    display: none;
+    position: absolute;
+    right: 6px;
+    top: 50%;
+    transform: translateY(-50%);
+    background: none;
+    border: none;
+    color: var(--text2);
+    cursor: pointer;
+    font-size: 0.85rem;
+    padding: 2px 4px;
+    line-height: 1;
+  }
+  .search-clear:hover { color: var(--text); }
+
+  .filter-bar {
+    padding: 8px 16px;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .custom-dropdown {
+    position: relative;
+    width: 100%;
+  }
+
+  .custom-dropdown-trigger {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    width: 100%;
+    background-color: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 6px 12px;
+    font-size: 0.8rem;
+    color: var(--text);
+    cursor: pointer;
+    user-select: none;
+  }
+
+  .custom-dropdown-trigger:hover { border-color: var(--accent); }
+
+  .custom-dropdown-arrow {
+    font-size: 0.65rem;
+    color: var(--text2);
+    transition: transform 0.15s;
+  }
+
+  .custom-dropdown.open .custom-dropdown-arrow { transform: rotate(180deg); }
+
+  .custom-dropdown-menu {
+    display: none;
+    position: absolute;
+    top: calc(100% + 4px);
+    left: 0;
+    right: 0;
+    background: var(--bg2);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 4px;
+    z-index: 200;
+    box-shadow: 0 8px 24px var(--shadow);
+  }
+
+  .custom-dropdown.open .custom-dropdown-menu { display: block; }
+
+  .custom-dropdown-item {
+    padding: 7px 10px;
+    border-radius: 7px;
+    font-size: 0.8rem;
+    color: var(--text2);
+    cursor: pointer;
+    transition: background 0.15s, color 0.15s;
+  }
+
+  .custom-dropdown-item:hover {
+    background: rgba(233,69,96,0.12);
+    color: var(--text);
+  }
+
+  .custom-dropdown-item.active {
+    background: var(--accent);
+    color: #fff;
+  }
+
+  .game-list {
+    flex: 1;
+    overflow-y: auto;
+    padding: 8px;
+  }
+
+  .game-card {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 12px;
+    margin-bottom: 8px;
+    cursor: pointer;
+    transition: all 0.2s;
+    position: relative;
+  }
+
+  .game-card:hover { border-color: var(--accent); transform: translateX(2px); }
+  .game-card.selected { border-color: var(--accent); background: rgba(233,69,96,0.1); }
+  .game-card.locked { opacity: 0.5; }
+
+  .game-card .lock-icon {
+    position: absolute;
+    top: 8px;
+    right: 8px;
+    font-size: 0.8rem;
+    color: var(--yellow);
+  }
+
+  .game-card .title {
+    font-weight: 600;
+    font-size: 0.95rem;
+    margin-bottom: 4px;
+    padding-right: 20px;
+  }
+
+  .game-card .meta {
+    font-size: 0.8rem;
+    color: var(--text2);
+    display: flex;
+    gap: 10px;
+    align-items: center;
+    margin-bottom: 6px;
+  }
+
+  .game-card .hours-bar {
+    height: 4px;
+    background: var(--bg);
+    border-radius: 2px;
+    overflow: hidden;
+    margin-top: 6px;
+  }
+
+  .game-card .hours-bar .fill {
+    height: 100%;
+    border-radius: 2px;
+    transition: width 0.3s;
+  }
+
+  .status-badge {
+    display: inline-block;
+    padding: 2px 8px;
+    border-radius: 10px;
+    font-size: 0.7rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+
+  .status-not-started { background: var(--bg); color: var(--text2); border: 1px solid var(--border); }
+  .status-in-progress { background: rgba(255,214,0,0.15); color: var(--yellow); border: 1px solid rgba(255,214,0,0.3); }
+  .status-completed { background: rgba(0,200,83,0.15); color: var(--green); border: 1px solid rgba(0,200,83,0.3); }
+
+  .main-content {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+  }
+
+  .tabs {
+    display: flex;
+    background: var(--bg2);
+    border-bottom: 1px solid var(--border);
+  }
+
+  .tab {
+    padding: 10px 20px;
+    cursor: pointer;
+    font-size: 0.9rem;
+    color: var(--text2);
+    border-bottom: 2px solid transparent;
+    transition: all 0.2s;
+  }
+
+  .tab:hover { color: var(--text); }
+  .tab.active { color: var(--accent); border-bottom-color: var(--accent); }
+
+  .tab-content {
+    flex: 1;
+    overflow: auto;
+    padding: 20px;
+  }
+
+  .tab-pane { display: none; }
+  .tab-pane.active { display: block; }
+
+  .btn {
+    background: var(--accent);
+    color: #fff;
+    border: none;
+    border-radius: 6px;
+    padding: 8px 16px;
+    font-size: 0.85rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+  }
+
+  .btn:hover { filter: brightness(1.15); }
+  .btn-sm { padding: 4px 10px; font-size: 0.75rem; }
+  .btn-outline { background: transparent; border: 1px solid var(--border); color: var(--text); }
+  .btn-outline:hover { border-color: var(--accent); color: var(--accent); }
+  .btn-danger { background: #c62828; }
+  .btn-success { background: #2e7d32; }
+
+  .form-group {
+    margin-bottom: 14px;
+  }
+
+  .form-group label {
+    display: block;
+    font-size: 0.8rem;
+    color: var(--text2);
+    margin-bottom: 4px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+
+  .form-group input,
+  .form-group textarea {
+    width: 100%;
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 8px 12px;
+    color: var(--text);
+    font-size: 0.9rem;
+    outline: none;
+    font-family: inherit;
+  }
+
+  .form-group select {
+    width: 100%;
+    background-color: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 8px 12px;
+    color: var(--text);
+    font-size: 0.9rem;
+    outline: none;
+    font-family: inherit;
+  }
+
+  .form-group input:focus,
+  .form-group select:focus,
+  .form-group textarea:focus { border-color: var(--accent); }
+
+  .form-group textarea { resize: vertical; min-height: 60px; }
+
+  .form-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+  }
+
+  .modal-overlay {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.7);
+    z-index: 200;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .modal-overlay.open { display: flex; }
+
+  .modal {
+    background: var(--bg2);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    width: 500px;
+    max-width: 95vw;
+    max-height: 90vh;
+    overflow-y: auto;
+    padding: 24px;
+    box-shadow: 0 20px 60px var(--shadow);
+  }
+
+  .modal h2 {
+    font-size: 1.2rem;
+    margin-bottom: 16px;
+    color: var(--accent);
+  }
+
+  .modal-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 8px;
+    margin-top: 16px;
+  }
+
+  .gantt-container {
+    min-height: 400px;
+  }
+
+  .gantt-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 16px;
+  }
+
+  .gantt-nav {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+  }
+
+  .gantt-nav button {
+    background: var(--bg2);
+    border: 1px solid var(--border);
+    color: var(--text);
+    padding: 6px 12px;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 0.85rem;
+  }
+
+  .gantt-nav button:hover { border-color: var(--accent); }
+
+  /* dhtmlxGantt theme overrides */
+  .gantt_container, .gantt_container * {
+    font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+  }
+
+  [data-theme="dark"] .gantt_second_scale .gantt_scale_cell {
+    color: var(--accent) !important;
+    font-weight: 600 !important;
+  }
+
+  [data-theme="dark"] .gantt_task_content {
+    color: #fff !important;
+  }
+
+  [data-theme="dark"] .gantt_link_line {
+    background: var(--accent) !important;
+    border-color: var(--accent) !important;
+  }
+
+  [data-theme="dark"] .gantt_link_arrow {
+    border-left-color: var(--accent) !important;
+  }
+
+  [data-theme="dark"] .gantt_toolbar {
+    display: none !important;
+  }
+
+  [data-theme="dark"] .gantt_scroll_pointer {
+    background: var(--accent) !important;
+  }
+
+  [data-theme="dark"] .gantt_today {
+    border-left: 2px solid var(--accent) !important;
+  }
+
+  [data-theme="dark"] .gantt_task_line {
+    border-radius: 4px !important;
+  }
+
+  [data-theme="dark"] .gantt_task_line .gantt_task_content {
+    border-radius: 4px !important;
+  }
+
+  [data-theme="dark"] .gantt_tooltip {
+    background: var(--bg2) !important;
+    color: var(--text) !important;
+    border: 1px solid var(--border) !important;
+    border-radius: 6px !important;
+    box-shadow: 0 4px 12px var(--shadow) !important;
+    font-size: 0.8rem !important;
+  }
+
+  .play-order-section {
+    max-width: 900px;
+  }
+
+  .chain-card {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 16px;
+    margin-bottom: 12px;
+  }
+
+  .chain-card h3 {
+    font-size: 0.95rem;
+    margin-bottom: 12px;
+    color: var(--text);
+  }
+
+  .chain-list {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    align-items: center;
+  }
+
+  .chain-item {
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 6px 12px;
+    font-size: 0.8rem;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+
+  .chain-item.completed { border-color: var(--green); color: var(--green); }
+  .chain-item.current { border-color: var(--yellow); color: var(--yellow); }
+  .chain-item.blocked { opacity: 0.5; }
+
+  .chain-arrow { color: var(--accent); font-size: 1.1rem; }
+
+  .chain-date {
+    font-size: 0.6rem;
+    color: var(--accent);
+    background: rgba(233,69,96,0.1);
+    border: 1px solid rgba(233,69,96,0.2);
+    border-radius: 4px;
+    padding: 1px 5px;
+    margin-left: 4px;
+    white-space: nowrap;
+  }
+
+  .changelog-entry {
+    display: flex;
+    gap: 12px;
+    padding: 10px 0;
+    border-bottom: 1px solid var(--border);
+    font-size: 0.85rem;
+  }
+
+  .changelog-entry:last-child { border-bottom: none; }
+
+  .changelog-time {
+    min-width: 120px;
+    font-size: 0.75rem;
+    color: var(--text2);
+    white-space: nowrap;
+    padding-top: 2px;
+  }
+
+  .changelog-icon {
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.8rem;
+    flex-shrink: 0;
+  }
+
+  .changelog-icon.game-added { background: rgba(0,200,83,0.15); color: var(--green); }
+  .changelog-icon.game-updated { background: rgba(255,214,0,0.15); color: var(--yellow); }
+  .changelog-icon.game-deleted { background: rgba(255,82,82,0.15); color: #ff5252; }
+  .changelog-icon.status-changed { background: rgba(255,145,0,0.15); color: var(--orange); }
+  .changelog-icon.hours-updated { background: rgba(41,121,255,0.15); color: #2979ff; }
+  .changelog-icon.chain-created { background: rgba(124,77,255,0.15); color: #7c4dff; }
+  .changelog-icon.chain-updated { background: rgba(124,77,255,0.15); color: #7c4dff; }
+  .changelog-icon.chain-deleted { background: rgba(255,82,82,0.15); color: #ff5252; }
+  .changelog-icon.settings-changed { background: rgba(120,144,156,0.15); color: #78909c; }
+
+  .changelog-message { flex: 1; color: var(--text); }
+
+  .empty-state {
+    text-align: center;
+    padding: 60px 20px;
+    color: var(--text2);
+  }
+
+  .empty-state .icon { font-size: 3rem; margin-bottom: 12px; }
+  .empty-state h3 { font-size: 1.1rem; margin-bottom: 8px; color: var(--text); }
+
+  .detail-panel {
+    display: none;
+  }
+
+  .detail-panel.open {
+    display: block;
+  }
+
+  .detail-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 16px;
+  }
+
+  .detail-header h2 {
+    font-size: 1.3rem;
+    font-weight: 700;
+  }
+
+  .detail-actions {
+    display: flex;
+    gap: 6px;
+  }
+
+  .detail-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+    margin-bottom: 20px;
+  }
+
+  .detail-box {
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 14px;
+  }
+
+  .detail-box h4 {
+    font-size: 0.75rem;
+    color: var(--text2);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    margin-bottom: 8px;
+  }
+
+  .detail-box .big-num {
+    font-size: 1.8rem;
+    font-weight: 700;
+    color: var(--accent);
+  }
+
+  .detail-box .unit {
+    font-size: 0.8rem;
+    color: var(--text2);
+    margin-left: 4px;
+  }
+
+  .relation-section {
+    margin-top: 16px;
+  }
+
+  .relation-section h4 {
+    font-size: 0.85rem;
+    color: var(--text2);
+    margin-bottom: 8px;
+  }
+
+  .relation-links {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+  }
+
+  .relation-link {
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 4px 10px;
+    font-size: 0.8rem;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+
+  .relation-link:hover { border-color: var(--accent); color: var(--accent); }
+
+  .link-selector {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+    margin-top: 8px;
+  }
+
+  .link-selector select {
+    background-color: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 6px 10px;
+    color: var(--text);
+    font-size: 0.8rem;
+    outline: none;
+    min-width: 180px;
+  }
+
+  .link-selector select:focus { border-color: var(--accent); }
+
+  .notification {
+    position: fixed;
+    bottom: 20px;
+    right: 20px;
+    background: var(--green);
+    color: #000;
+    padding: 10px 20px;
+    border-radius: 8px;
+    font-size: 0.85rem;
+    font-weight: 600;
+    z-index: 300;
+    animation: slideIn 0.3s ease, fadeOut 0.3s ease 2.5s forwards;
+  }
+
+  @keyframes slideIn {
+    from { transform: translateY(20px); opacity: 0; }
+    to { transform: translateY(0); opacity: 1; }
+  }
+
+  @keyframes fadeOut {
+    to { opacity: 0; transform: translateY(10px); }
+  }
+
+  .hours-input-inline {
+    width: 60px;
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    padding: 2px 6px;
+    color: var(--text);
+    font-size: 0.8rem;
+    text-align: center;
+    outline: none;
+  }
+
+  .hours-input-inline:focus { border-color: var(--accent); }
+
+  select option { background: var(--bg2); color: var(--text); }
+
+  select {
+    appearance: none;
+    -webkit-appearance: none;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M0 0l5 6 5-6z' fill='%238892b0'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 10px center;
+    padding-right: 28px !important;
+  }
+
+  .settings-section {
+    max-width: 1000px;
+  }
+
+  .settings-card {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 20px;
+    margin-bottom: 16px;
+  }
+
+  .theme-switch {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    cursor: pointer;
+  }
+
+  .theme-switch-track {
+    width: 44px;
+    height: 24px;
+    background: var(--border);
+    border-radius: 12px;
+    position: relative;
+    transition: background 0.2s;
+    flex-shrink: 0;
+  }
+
+  .theme-switch-track::after {
+    content: '';
+    position: absolute;
+    top: 3px;
+    left: 3px;
+    width: 18px;
+    height: 18px;
+    background: var(--text);
+    border-radius: 50%;
+    transition: transform 0.2s;
+  }
+
+  [data-theme="light"] .theme-switch-track {
+    background: var(--accent);
+  }
+
+  [data-theme="light"] .theme-switch-track::after {
+    transform: translateX(20px);
+    background: #fff;
+  }
+
+  .theme-switch-label {
+    font-size: 0.85rem;
+    color: var(--text);
+  }
+
+  .accent-swatch {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    border: 3px solid transparent;
+    cursor: pointer;
+    transition: border-color 0.15s, transform 0.15s;
+  }
+
+  .accent-swatch:hover { transform: scale(1.15); }
+  .accent-swatch.active { border-color: var(--text); }
+
+  .settings-card h3 {
+    font-size: 0.95rem;
+    margin-bottom: 14px;
+    color: var(--text);
+  }
+
+  .settings-row {
+    display: grid;
+    grid-template-columns: repeat(7, 1fr);
+    gap: 8px;
+    margin-bottom: 12px;
+  }
+
+  .settings-day {
+    text-align: center;
+  }
+
+  .settings-day label {
+    display: block;
+    font-size: 0.7rem;
+    color: var(--text2);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    margin-bottom: 4px;
+    font-weight: 600;
+  }
+
+  .settings-day input {
+    width: 100%;
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 8px 4px;
+    color: var(--text);
+    font-size: 0.9rem;
+    text-align: center;
+    outline: none;
+  }
+
+  .settings-day input:focus { border-color: var(--accent); }
+
+  .settings-day.weekend label { color: var(--accent); }
+
+  .settings-summary {
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 12px 16px;
+    font-size: 0.85rem;
+    color: var(--text2);
+    display: flex;
+    gap: 16px;
+    align-items: center;
+  }
+
+  .settings-summary strong { color: var(--text); }
+
+  .estimated-badge {
+    display: inline-block;
+    padding: 2px 8px;
+    border-radius: 10px;
+    font-size: 0.7rem;
+    font-weight: 600;
+    background: rgba(233,69,96,0.15);
+    color: var(--accent);
+    border: 1px solid rgba(233,69,96,0.3);
+    margin-left: 4px;
+  }
+
+  .computed-date-display {
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 8px 12px;
+    color: var(--accent);
+    font-size: 0.9rem;
+    font-weight: 600;
+    min-height: 36px;
+    display: flex;
+    align-items: center;
+  }
+
+  .computed-date-display.empty {
+    color: var(--text2);
+    font-weight: 400;
+    font-style: italic;
+  }
+
+  /* ---------- DROPBOX SYNC ---------- */
+  #syncBtn {
+    display: none;
+    align-items: center;
+    justify-content: center;
+    width: 36px;
+    height: 36px;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    background: var(--bg2);
+    color: var(--text);
+    cursor: pointer;
+    font-size: 1rem;
+    transition: background 0.2s, border-color 0.2s;
+    flex-shrink: 0;
+  }
+  #syncBtn:hover { background: var(--bg3); border-color: var(--accent); }
+  #syncBtn.syncing { border-color: rgba(0,200,83,0.55); background: rgba(0,200,83,0.18); }
+  .sync-ico { transform-origin: 50% 50%; }
+  #syncBtn.syncing .sync-ico { animation: spin 0.9s linear infinite; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  .dbx-link { color: var(--accent); opacity: 0.8; text-decoration: none; font-weight: 500; transition: opacity 0.2s; }
+  .dbx-link:hover { opacity: 1; text-decoration: underline; }
+  #dbxKey {
+    width: 100%;
+    padding: 10px 14px;
+    border-radius: 8px;
+    border: 1px solid var(--border);
+    background: var(--bg);
+    color: var(--text);
+    font-size: 0.9rem;
+    outline: none;
+    font-family: inherit;
+    transition: background 0.2s, border-color 0.2s;
+    box-sizing: border-box;
+  }
+  #dbxKey::placeholder { color: var(--text2); opacity: 0.6; }
+  #dbxKey:focus { border-color: var(--accent); }
+  .dbx-status {
+    font-size: 0.7rem;
+    font-weight: 500;
+    vertical-align: middle;
+    padding: 2px 10px;
+    border-radius: 20px;
+    margin-left: 6px;
+    background: rgba(255,255,255,0.08);
+    color: var(--text2);
+  }
+  .dbx-status.connected { background: rgba(0,200,83,0.2); color: var(--green); }
+  .dbx-account-row { font-size: 0.8rem; color: var(--text2); margin: 4px 0 14px; display: flex; flex-wrap: wrap; gap: 4px; }
+  .dbx-account-row span + span::before { content: '\00b7'; opacity: 0.5; margin-right: 4px; }
+  .dbx-toggle {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    cursor: pointer;
+    margin: 8px 0;
+    user-select: none;
+  }
+  .dbx-toggle input { display: none; }
+  .dbx-toggle-track {
+    width: 36px;
+    height: 20px;
+    background: var(--border);
+    border-radius: 10px;
+    position: relative;
+    transition: background 0.2s;
+    flex-shrink: 0;
+  }
+  .dbx-toggle-thumb {
+    width: 16px;
+    height: 16px;
+    background: var(--text2);
+    border-radius: 50%;
+    position: absolute;
+    top: 2px;
+    left: 2px;
+    transition: transform 0.2s, background 0.2s;
+  }
+  .dbx-toggle input:checked + .dbx-toggle-track { background: var(--accent); }
+  .dbx-toggle input:checked + .dbx-toggle-track .dbx-toggle-thumb { transform: translateX(16px); background: #fff; }
+  .dbx-toggle-label { font-size: 0.8rem; color: var(--text2); }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>Play<span>Next</span></h1>
+  <div class="stats-bar">
+    <div class="stat-item"><span class="num" id="statTotal">0</span><span class="label">Games</span></div>
+    <div class="stat-item"><span class="num" id="statPlaying">0</span><span class="label">Playing</span></div>
+    <div class="stat-item"><span class="num" id="statCompleted">0</span><span class="label">Done</span></div>
+    <div class="stat-item"><span class="num" id="statHours">0</span><span class="label">Hrs Remaining</span></div>
+    <div class="stat-item"><span class="num" id="statWeekly">0</span><span class="label">Hrs/Week</span></div>
+    <div class="stat-item" style="border-left:1px solid var(--border);padding-left:12px;"><span class="num" id="clockDate" style="font-size:0.8rem;font-weight:400;color:var(--text2);"></span><span class="num" id="clockTime" style="font-size:1rem;font-weight:700;color:var(--accent);"></span></div>
+  </div>
+</header>
+
+<div class="layout">
+  <aside class="sidebar">
+    <div class="sidebar-header">
+      <div class="search-wrap">
+        <input type="text" id="searchInput" placeholder="Search games...">
+        <button class="search-clear" id="searchClear" onclick="document.getElementById('searchInput').value=''; renderGameList(); updateSearchClear();">&#10005;</button>
+      </div>
+      <button class="btn btn-sm" onclick="openAddModal()">+ Add</button>
+      <button id="syncBtn" onclick="dropboxUpload()" title="Sync to Dropbox"><span class="sync-ico">&#8635;</span></button>
+    </div>
+    <div class="filter-bar" id="filterBar">
+      <div class="custom-dropdown" id="filterDropdown">
+        <div class="custom-dropdown-trigger" onclick="toggleFilterDropdown()">
+          <span id="filterDropdownLabel">All</span>
+          <span class="custom-dropdown-arrow">&#9662;</span>
+        </div>
+        <div class="custom-dropdown-menu" id="filterDropdownMenu">
+          <div class="custom-dropdown-item active" data-value="all" onclick="setFilter('all')">All</div>
+          <div class="custom-dropdown-item" data-value="not-started" onclick="setFilter('not-started')">Not Started</div>
+          <div class="custom-dropdown-item" data-value="in-progress" onclick="setFilter('in-progress')">In Progress</div>
+          <div class="custom-dropdown-item" data-value="completed" onclick="setFilter('completed')">Completed</div>
+        </div>
+      </div>
+    </div>
+    <div class="game-list" id="gameList"></div>
+  </aside>
+
+  <div class="main-content">
+    <div class="tabs">
+      <div class="tab active" data-tab="gantt" onclick="switchTab('gantt',this)">Gantt Chart</div>
+      <div class="tab" data-tab="detail" onclick="switchTab('detail',this)">Game Details</div>
+      <div class="tab" data-tab="chains" onclick="switchTab('chains',this)">Play Order</div>
+      <div class="tab" data-tab="changelog" onclick="switchTab('changelog',this)">Changelog</div>
+      <div class="tab" data-tab="settings" onclick="switchTab('settings',this)">&#9881; Settings</div>
+    </div>
+
+    <div class="tab-content">
+      <div class="tab-pane active" id="tab-gantt">
+        <div class="gantt-header">
+          <div class="gantt-nav">
+            <button onclick="ganttPrev()">&#9664; Prev</button>
+            <button onclick="ganttToday()">Today</button>
+            <button onclick="ganttNext()">Next &#9654;</button>
+          </div>
+          <div style="display:flex;gap:12px;font-size:0.75rem;color:var(--text2);">
+            <span><span style="display:inline-block;width:10px;height:10px;border-radius:2px;background:#555;vertical-align:middle;"></span> Not Started</span>
+            <span><span style="display:inline-block;width:10px;height:10px;border-radius:2px;background:var(--yellow);vertical-align:middle;"></span> In Progress</span>
+            <span>&#8594; Chain Link</span>
+          </div>
+        </div>
+        <div class="gantt-container" id="ganttContainer" style="height:500px;"></div>
+      </div>
+
+      <div class="tab-pane" id="tab-detail">
+        <div id="detailEmpty" class="empty-state">
+          <div class="icon">&#127918;</div>
+          <h3>No game selected</h3>
+          <p>Select a game from the sidebar or add a new one.</p>
+        </div>
+        <div id="detailPanel" class="detail-panel"></div>
+      </div>
+
+      <div class="tab-pane" id="tab-chains">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;">
+          <h2 style="font-size:1.1rem;">Play Order Chains</h2>
+          <button class="btn btn-sm" onclick="openChainModal()">+ New Chain</button>
+        </div>
+        <div id="chainsList" class="play-order-section"></div>
+      </div>
+
+      <div class="tab-pane" id="tab-changelog">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;">
+          <h2 style="font-size:1.1rem;">Changelog</h2>
+        </div>
+        <div id="changelogList"></div>
+      </div>
+
+      <div class="tab-pane" id="tab-settings">
+        <div class="settings-section">
+          <div class="settings-card">
+            <h3>Appearance</h3>
+            <div class="theme-switch" onclick="toggleTheme()">
+              <div class="theme-switch-track" id="themeTrack"></div>
+              <span class="theme-switch-label" id="themeLabel">Dark Mode</span>
+            </div>
+            <div style="margin-top:16px;">
+              <div style="font-size:0.85rem;color:var(--text);margin-bottom:10px;">Accent Color</div>
+              <div style="display:flex;gap:8px;flex-wrap:wrap;" id="accentSwatches"></div>
+            </div>
+          </div>
+
+          <div class="settings-card">
+            <h3>Daily Hours</h3>
+            <p style="font-size:0.8rem;color:var(--text2);margin-bottom:12px;">Set how many hours you play each day. Used to estimate completion dates.</p>
+            <div class="settings-row">
+              <div class="settings-day"><label>Mon</label><input type="number" id="setMon" min="0" max="24" step="0.5" value="0"></div>
+              <div class="settings-day"><label>Tue</label><input type="number" id="setTue" min="0" max="24" step="0.5" value="0"></div>
+              <div class="settings-day"><label>Wed</label><input type="number" id="setWed" min="0" max="24" step="0.5" value="0"></div>
+              <div class="settings-day"><label>Thu</label><input type="number" id="setThu" min="0" max="24" step="0.5" value="0"></div>
+              <div class="settings-day"><label>Fri</label><input type="number" id="setFri" min="0" max="24" step="0.5" value="0"></div>
+              <div class="settings-day weekend"><label>Sat</label><input type="number" id="setSat" min="0" max="24" step="0.5" value="0"></div>
+              <div class="settings-day weekend"><label>Sun</label><input type="number" id="setSun" min="0" max="24" step="0.5" value="0"></div>
+            </div>
+            <div class="settings-summary" id="settingsSummary"></div>
+          </div>
+
+          <div class="settings-card">
+            <h3>Presets</h3>
+            <p style="font-size:0.8rem;color:var(--text2);margin-bottom:12px;">Quick-fill common gaming schedules.</p>
+            <div style="display:flex;gap:8px;flex-wrap:wrap;">
+              <button class="btn btn-sm btn-outline" onclick="applyPreset('light')">Light (1h weekday, 3h weekend)</button>
+              <button class="btn btn-sm btn-outline" onclick="applyPreset('moderate')">Moderate (2h weekday, 5h weekend)</button>
+              <button class="btn btn-sm btn-outline" onclick="applyPreset('heavy')">Heavy (3h weekday, 8h weekend)</button>
+              <button class="btn btn-sm btn-outline" onclick="applyPreset('weekend')">Weekend Only (0h weekday, 6h weekend)</button>
+            </div>
+          </div>
+
+          <div class="settings-card">
+            <h3>Dropbox Sync <span id="dbxStatus" class="dbx-status"></span></h3>
+            <p style="font-size:0.8rem;color:var(--text2);margin-bottom:12px;">Sync through your own Dropbox account so your gaming planner is available on all your devices. Your data goes straight from your browser to Dropbox &mdash; never through any server of ours.</p>
+            <div id="dbxSetup">
+              <label style="font-size:0.85rem;color:var(--text);margin-bottom:6px;display:block;">Dropbox App Key <a href="https://www.dropbox.com/developers/apps" target="_blank" rel="noopener" class="dbx-link">(get one free &rarr;)</a></label>
+              <input type="text" id="dbxKey" placeholder="e.g. abcd1234efgh567" autocomplete="off" spellcheck="false">
+              <div style="margin-top:12px;">
+                <button class="btn btn-sm" onclick="dropboxConnect()">Connect to Dropbox</button>
+              </div>
+            </div>
+            <div id="dbxConnected" style="display:none">
+              <p class="dbx-account-row"><span id="dbxAccount"></span><span id="dbxLastSync">never synced</span></p>
+              <label class="dbx-toggle">
+                <input type="checkbox" id="dbxAutoUpload" onchange="dropboxSetAutoUpload(this.checked)">
+                <span class="dbx-toggle-track"><span class="dbx-toggle-thumb"></span></span>
+                <span class="dbx-toggle-label">Auto-upload changes 10 seconds after you stop editing</span>
+              </label>
+              <label class="dbx-toggle">
+                <input type="checkbox" id="dbxAutoSync" onchange="dropboxSetAutoSync(this.checked)">
+                <span class="dbx-toggle-track"><span class="dbx-toggle-thumb"></span></span>
+                <span class="dbx-toggle-label">Auto-sync newer backups when the app opens</span>
+              </label>
+              <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:12px;">
+                <button class="btn btn-sm btn-outline" onclick="dropboxUpload()">&#8593; Upload</button>
+                <button class="btn btn-sm btn-outline" onclick="dropboxDownload()">&#8595; Download</button>
+                <button class="btn btn-sm" style="color:#ff5252;" onclick="dropboxDisconnect()">Disconnect</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Add/Edit Game Modal -->
+<div class="modal-overlay" id="gameModal">
+  <div class="modal">
+    <h2 id="gameModalTitle">Add Game</h2>
+    <input type="hidden" id="editGameId">
+    <div class="form-group">
+      <label>Game Title</label>
+      <input type="text" id="gameTitle" placeholder="e.g. The Witcher 3">
+    </div>
+    <div class="form-row">
+      <div class="form-group">
+        <label>Total Hours</label>
+        <input type="number" id="gameTotalHours" placeholder="0" min="0" step="0.5" oninput="previewEndDate()">
+      </div>
+      <div class="form-group">
+        <label>Hours Played</label>
+        <input type="number" id="gameHoursPlayed" placeholder="0" min="0" step="0.5" oninput="previewEndDate()">
+      </div>
+    </div>
+    <div class="form-row">
+      <div class="form-group">
+        <label>Status</label>
+        <select id="gameStatus">
+          <option value="not-started">Not Started</option>
+          <option value="in-progress">In Progress</option>
+          <option value="completed">Completed</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label>Platform</label>
+        <input type="text" id="gamePlatform" placeholder="e.g. PC, PS5">
+      </div>
+    </div>
+    <div class="form-row">
+      <div class="form-group">
+        <label>Start Date</label>
+        <input type="date" id="gameStartDate" oninput="previewEndDate()">
+      </div>
+      <div class="form-group">
+        <label>Estimated End Date (from Settings)</label>
+        <div class="computed-date-display empty" id="gameEndDatePreview">Set start date and hours to see estimate</div>
+      </div>
+    </div>
+    <div class="form-row">
+      <div class="form-group">
+        <label>Gantt Color</label>
+        <div id="modalColorSwatches"></div>
+        <div style="display:flex;align-items:center;gap:8px;margin-top:8px;">
+          <input type="color" id="gameColor" value="#888888" style="width:36px;height:32px;border:1px solid var(--border);border-radius:6px;cursor:pointer;background:none;padding:2px;">
+          <span style="font-size:0.75rem;color:var(--text2);">Custom</span>
+          <button type="button" class="btn btn-sm btn-outline" onclick="document.getElementById('gameColor').value='#888888';previewGameColor('gameColor','#888888');">Reset</button>
+        </div>
+      </div>
+    </div>
+    <div class="form-group">
+      <label>Notes</label>
+      <textarea id="gameNotes" placeholder="Optional notes..."></textarea>
+    </div>
+    <div class="modal-actions">
+      <button class="btn btn-outline" onclick="closeModal('gameModal')">Cancel</button>
+      <button class="btn" onclick="saveGame()">Save</button>
+    </div>
+  </div>
+</div>
+
+<!-- Chain Modal -->
+<div class="modal-overlay" id="chainModal">
+  <div class="modal">
+    <h2 id="chainModalTitle">New Play Order Chain</h2>
+    <input type="hidden" id="editChainId">
+    <div class="form-group">
+      <label>Chain Name</label>
+      <input type="text" id="chainName" placeholder="e.g. Mass Effect Series">
+    </div>
+    <div class="form-group">
+      <label>Add Game to Chain</label>
+      <div class="link-selector">
+        <select id="chainGameSelect"></select>
+        <button class="btn btn-sm" onclick="addToChain()">Add</button>
+      </div>
+    </div>
+    <div id="chainPreview" style="margin-top:12px;"></div>
+    <div class="modal-actions">
+      <button class="btn btn-outline" onclick="closeModal('chainModal')">Cancel</button>
+      <button class="btn" onclick="saveChain()">Save Chain</button>
+    </div>
+  </div>
+</div>
+
+<!-- Dropbox newer-backup prompt -->
+<div class="modal-overlay" id="dbxSyncOverlay">
+  <div class="modal" style="max-width:420px;">
+    <h2>Newer backup on Dropbox</h2>
+    <p style="font-size:0.9rem;color:var(--text2);margin:12px 0 20px;">Your Dropbox backup was updated <b id="dbxSyncWhen"></b> &mdash; probably from another device. Downloading it will replace what's on this device.</p>
+    <div class="modal-actions">
+      <button class="btn btn-outline" id="dbxSyncLater">Not now</button>
+      <button class="btn" id="dbxSyncNow">&#8595; Sync now</button>
+    </div>
+  </div>
+</div>
+<script>
+const DB_KEY = 'playnext_db';
+function localDateStr(d) { const y=d.getFullYear(), m=String(d.getMonth()+1).padStart(2,'0'), day=String(d.getDate()).padStart(2,'0'); return y+'-'+m+'-'+day; }
+let db = { games: [], chains: [], settings: { mon: 0, tue: 0, wed: 0, thu: 0, fri: 0, sat: 0, sun: 0 } };
+let currentFilter = 'all';
+let selectedGameId = null;
+let tempChainGames = [];
+
+function getDefaultSettings() {
+  return { mon: 0, tue: 0, wed: 0, thu: 0, fri: 0, sat: 0, sun: 0 };
+}
+
+function loadDB() {
+  try {
+    const raw = localStorage.getItem(DB_KEY);
+    if (raw) {
+      db = JSON.parse(raw);
+      if (!db.settings) db.settings = getDefaultSettings();
+    }
+  } catch(e) { db = { games: [], chains: [], settings: getDefaultSettings() }; }
+}
+
+function saveDB() {
+  localStorage.setItem(DB_KEY, JSON.stringify(db));
+  scheduleAutoUpload();
+}
+
+function getSettings() {
+  return db.settings || getDefaultSettings();
+}
+
+function getDailyHours() {
+  const s = getSettings();
+  return [s.mon, s.tue, s.wed, s.thu, s.fri, s.sat, s.sun];
+}
+
+function getWeeklyHours() {
+  return getDailyHours().reduce((a, b) => a + b, 0);
+}
+
+function estimateEndDate(startDateStr, remainingHours) {
+  if (!startDateStr || remainingHours <= 0) return null;
+  const daily = getDailyHours();
+  const weekly = daily.reduce((a, b) => a + b, 0);
+  if (weekly === 0) return null;
+
+  let date = new Date(startDateStr + 'T00:00:00');
+  let hoursLeft = remainingHours;
+
+  while (hoursLeft > 0) {
+    const dayIdx = date.getDay();
+    const dayHours = daily[dayIdx];
+    if (dayHours > 0) {
+      hoursLeft -= dayHours;
+    }
+    if (hoursLeft > 0) {
+      date.setDate(date.getDate() + 1);
+    }
+  }
+
+  return localDateStr(date);
+}
+
+function getGameEndDate(g) {
+  if (g.status === 'completed') return null;
+  const remaining = (g.totalHours || 0) - (g.hoursPlayed || 0);
+  if (!g.startDate || remaining <= 0) return null;
+  return estimateEndDate(g.startDate, remaining);
+}
+
+function getChainInfo(gameId) {
+  for (const chain of db.chains) {
+    const idx = chain.gameIds.indexOf(gameId);
+    if (idx >= 0) return { chain, index: idx };
+  }
+  return null;
+}
+
+let _chainDateCache = null;
+function computeChainDates() {
+  if (_chainDateCache) return _chainDateCache;
+  _chainDateCache = {};
+  for (const chain of db.chains) {
+    let currentDate = null;
+    for (const gameId of chain.gameIds) {
+      const game = db.games.find(g => g.id === gameId);
+      if (!game) continue;
+      let startDate;
+      if (currentDate) {
+        startDate = currentDate;
+      } else {
+        startDate = game.startDate;
+      }
+      if (!startDate) { currentDate = null; continue; }
+      const remaining = (game.totalHours || 0) - (game.hoursPlayed || 0);
+      const endDate = remaining > 0 ? estimateEndDate(startDate, remaining) : null;
+      _chainDateCache[gameId] = { startDate, endDate, chainName: chain.name, chainIndex: chain.gameIds.indexOf(gameId), chainLength: chain.gameIds.length };
+      if (endDate) currentDate = endDate;
+    }
+  }
+  return _chainDateCache;
+}
+
+function getEffectiveStartDate(g) {
+  const cd = computeChainDates();
+  if (cd[g.id]) return cd[g.id].startDate;
+  return g.startDate;
+}
+
+function getEffectiveEndDate(g) {
+  if (g.status === 'completed') return g.completedDate || null;
+  const cd = computeChainDates();
+  if (cd[g.id]) return cd[g.id].endDate;
+  return getGameEndDate(g);
+}
+
+function previewEndDate() {
+  const startVal = document.getElementById('gameStartDate').value;
+  const total = parseFloat(document.getElementById('gameTotalHours').value) || 0;
+  const played = parseFloat(document.getElementById('gameHoursPlayed').value) || 0;
+  const remaining = total - played;
+  const el = document.getElementById('gameEndDatePreview');
+
+  if (!startVal || remaining <= 0) {
+    el.textContent = remaining <= 0 && total > 0 ? 'Game fully played' : 'Set start date and hours to see estimate';
+    el.classList.add('empty');
+    return;
+  }
+
+  const est = estimateEndDate(startVal, remaining);
+  if (est) {
+    el.textContent = est;
+    el.classList.remove('empty');
+  } else {
+    el.textContent = 'Set gaming hours in Settings first';
+    el.classList.add('empty');
+  }
+}
+
+function saveSettings() {
+  const fields = ['mon','tue','wed','thu','fri','sat','sun'];
+  const days = ['setMon','setTue','setWed','setThu','setFri','setSat','setSun'];
+  fields.forEach((f, i) => {
+    db.settings[f] = parseFloat(document.getElementById(days[i]).value) || 0;
+  });
+  saveDB();
+  renderSettingsSummary();
+  renderAll();
+  logChangelog('change', 'Updated daily hours settings');
+}
+
+function loadSettingsUI() {
+  const s = getSettings();
+  document.getElementById('setMon').value = s.mon || 0;
+  document.getElementById('setTue').value = s.tue || 0;
+  document.getElementById('setWed').value = s.wed || 0;
+  document.getElementById('setThu').value = s.thu || 0;
+  document.getElementById('setFri').value = s.fri || 0;
+  document.getElementById('setSat').value = s.sat || 0;
+  document.getElementById('setSun').value = s.sun || 0;
+  renderSettingsSummary();
+}
+
+function renderSettingsSummary() {
+  const daily = getDailyHours();
+  const weekly = daily.reduce((a, b) => a + b, 0);
+  const weekday = daily.slice(0, 5).reduce((a, b) => a + b, 0);
+  const weekend = daily.slice(5).reduce((a, b) => a + b, 0);
+  const daysActive = daily.filter(h => h > 0).length;
+
+  if (weekly === 0) {
+    document.getElementById('settingsSummary').innerHTML = '<div style="color:var(--text2);font-style:italic;">No gaming hours configured. Set hours above or use a preset to enable date estimates.</div>';
+    return;
+  }
+
+  document.getElementById('settingsSummary').innerHTML =
+    '<div><strong>' + weekly.toFixed(1) + 'h</strong>/week</div>' +
+    '<div>Weekdays: <strong>' + weekday.toFixed(1) + 'h</strong></div>' +
+    '<div>Weekends: <strong>' + weekend.toFixed(1) + 'h</strong></div>' +
+    '<div><strong>' + daysActive + '</strong> gaming day(s)/week</div>' +
+    '<div>Avg: <strong>' + (weekly / 7).toFixed(1) + 'h</strong>/day</div>';
+}
+
+function applyPreset(name) {
+  const presets = {
+    light:    { mon: 1, tue: 1, wed: 1, thu: 1, fri: 1, sat: 3, sun: 3 },
+    moderate: { mon: 2, tue: 2, wed: 2, thu: 2, fri: 2, sat: 5, sun: 5 },
+    heavy:    { mon: 3, tue: 3, wed: 3, thu: 3, fri: 3, sat: 8, sun: 8 },
+    weekend:  { mon: 0, tue: 0, wed: 0, thu: 0, fri: 0, sat: 6, sun: 6 }
+  };
+  const p = presets[name];
+  if (!p) return;
+  db.settings = { ...p };
+  saveDB();
+  loadSettingsUI();
+  renderAll();
+  logChangelog('change', 'Applied preset "' + name + '"');
+  notify('Preset applied');
+}
+
+function genId() {
+  return Date.now().toString(36) + Math.random().toString(36).slice(2, 7);
+}
+
+function notify(msg) {
+  const el = document.createElement('div');
+  el.className = 'notification';
+  el.textContent = msg;
+  document.body.appendChild(el);
+  setTimeout(() => el.remove(), 3000);
+}
+
+const CHANGELOG_KEY = 'playnext_changelog';
+const CHANGELOG_VERSION = '1.0.0';
+const CHANGELOG_TYPES = {
+  'new': '&#10010;', 'change': '&#9998;', 'fix': '&#10006;'
+};
+
+function logChangelog(type, description) {
+  let entries = [];
+  try { entries = JSON.parse(localStorage.getItem(CHANGELOG_KEY)) || []; } catch(e) {}
+  entries.unshift({ id: genId(), version: CHANGELOG_VERSION, type, description, ts: new Date().toISOString() });
+  if (entries.length > 200) entries = entries.slice(0, 200);
+  localStorage.setItem(CHANGELOG_KEY, JSON.stringify(entries));
+}
+
+function renderChangelog() {
+  const div = document.getElementById('changelogList');
+  if (!div) return;
+  let entries = [];
+  try { entries = JSON.parse(localStorage.getItem(CHANGELOG_KEY)) || []; } catch(e) {}
+  if (entries.length === 0) {
+    div.innerHTML = '<div class="empty-state"><div class="icon">&#128221;</div><h3>No changes logged yet</h3><p>Actions like adding, updating, or deleting games will appear here.</p></div>';
+    return;
+  }
+  let html = '';
+  let lastDate = '';
+  entries.forEach(e => {
+    const d = new Date(e.ts);
+    const dateStr = d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+    const timeStr = d.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
+    if (dateStr !== lastDate) {
+      html += '<div style="font-size:0.75rem;font-weight:600;color:var(--text2);padding:12px 0 4px;text-transform:uppercase;letter-spacing:0.5px;">' + dateStr + '</div>';
+      lastDate = dateStr;
+    }
+    const typeLabel = (e.type || 'change').toUpperCase();
+    html += '<div class="changelog-entry">' +
+      '<div class="changelog-icon ' + (e.type || '') + '">' + (CHANGELOG_TYPES[e.type] || '&#8226;') + '</div>' +
+      '<div class="changelog-message">v' + esc(e.version || '?') + ' &mdash; <strong>' + typeLabel + '</strong> &mdash; ' + esc(e.description) + '</div>' +
+      '</div>';
+  });
+  div.innerHTML = html;
+}
+
+
+/* ---------- Dropbox sync (client-side OAuth2 PKCE, no backend) ---------- */
+const DBX_KEY = 'playnext_dropbox';
+const DBX_PATH = '/playnext-backup.json';
+let dbx = JSON.parse(localStorage.getItem(DBX_KEY) || 'null') ||
+  { appKey: '', accessToken: '', refreshToken: '', expiresAt: 0, account: '', lastSync: '', lastSyncAt: 0, dismissedRemoteAt: 0, autoSync: false, autoUpload: false };
+const dbxSave = () => localStorage.setItem(DBX_KEY, JSON.stringify(dbx));
+const dbxRedirectUri = () => location.origin + location.pathname;
+
+let _syncTimer = null, _skipAutoUpload = false, _lastUploadedState = '', _syncing = 0;
+function scheduleAutoUpload() {
+  if (!dbx.accessToken || !dbx.autoUpload) return;
+  if (_skipAutoUpload) { _skipAutoUpload = false; return; }
+  clearTimeout(_syncTimer);
+  _syncTimer = setTimeout(() => dropboxUpload(true), 10000);
+}
+function setSyncing(on) {
+  _syncing += on ? 1 : -1;
+  const btn = document.getElementById('syncBtn');
+  if (btn) btn.classList.toggle('syncing', _syncing > 0);
+}
+
+function b64url(buf) {
+  return btoa(String.fromCharCode(...new Uint8Array(buf))).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+}
+function randomString(len) {
+  const a = new Uint8Array(len); crypto.getRandomValues(a); return b64url(a).slice(0, len);
+}
+async function pkceChallenge(verifier) {
+  const digest = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(verifier));
+  return b64url(digest);
+}
+
+async function dropboxConnect() {
+  const key = document.getElementById('dbxKey').value.trim();
+  if (!key) { notify('Enter your Dropbox App key first'); return; }
+  if (!isSecureContext) { notify('Dropbox sync needs HTTPS (or localhost)'); return; }
+  dbx.appKey = key; dbxSave();
+  const verifier = randomString(64);
+  sessionStorage.setItem('playnext_dbx_verifier', verifier);
+  const challenge = await pkceChallenge(verifier);
+  location.href = 'https://www.dropbox.com/oauth2/authorize?' + new URLSearchParams({
+    client_id: key, response_type: 'code', code_challenge: challenge, code_challenge_method: 'S256',
+    token_access_type: 'offline', redirect_uri: dbxRedirectUri()
+  });
+}
+
+async function dropboxHandleRedirect() {
+  const params = new URLSearchParams(location.search);
+  const code = params.get('code');
+  if (!code) return;
+  history.replaceState(null, '', location.pathname + location.hash);
+  document.querySelectorAll('.tab')[4].click();
+  const verifier = sessionStorage.getItem('playnext_dbx_verifier');
+  if (!verifier || !dbx.appKey) return;
+  try {
+    const res = await fetch('https://api.dropboxapi.com/oauth2/token', {
+      method: 'POST', headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      body: new URLSearchParams({ code, grant_type: 'authorization_code', client_id: dbx.appKey, code_verifier: verifier, redirect_uri: dbxRedirectUri() })
+    });
+    const j = await res.json();
+    if (!res.ok) throw new Error(j.error_description || j.error || 'auth failed');
+    dbx.accessToken = j.access_token; dbx.refreshToken = j.refresh_token || dbx.refreshToken;
+    dbx.expiresAt = Date.now() + (j.expires_in || 14400) * 1000; dbxSave();
+    await dropboxFetchAccount();
+    notify('Dropbox connected');
+    dropboxCheckForUpdates();
+  } catch (err) { notify('Dropbox connection failed: ' + err.message); }
+  updateDropboxUI();
+}
+
+async function dropboxRefreshIfNeeded() {
+  if (dbx.accessToken && Date.now() < dbx.expiresAt - 30000) return true;
+  if (!dbx.refreshToken || !dbx.appKey) return !!dbx.accessToken;
+  const res = await fetch('https://api.dropboxapi.com/oauth2/token', {
+    method: 'POST', headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+    body: new URLSearchParams({ grant_type: 'refresh_token', refresh_token: dbx.refreshToken, client_id: dbx.appKey })
+  });
+  const j = await res.json();
+  if (!res.ok) return false;
+  dbx.accessToken = j.access_token; dbx.expiresAt = Date.now() + (j.expires_in || 14400) * 1000; dbxSave();
+  return true;
+}
+
+async function dropboxFetchAccount() {
+  try {
+    const res = await fetch('https://api.dropboxapi.com/2/users/get_current_account', {
+      method: 'POST', headers: { 'Authorization': 'Bearer ' + dbx.accessToken }
+    });
+    if (res.ok) { const j = await res.json(); dbx.account = j.email || (j.name && j.name.display_name) || ''; dbxSave(); }
+  } catch (e) {}
+}
+
+function dbxParseBackup(text) {
+  const parsed = JSON.parse(text);
+  const d = parsed && parsed.data ? parsed.data : parsed;
+  if (!d || !d.games) throw new Error('bad backup format');
+  d.chains = d.chains || [];
+  if (!d.settings) d.settings = getDefaultSettings();
+  return d;
+}
+function dbxApplyData(d) {
+  db = d;
+  _lastUploadedState = JSON.stringify(db);
+  _skipAutoUpload = true;
+  saveDB(); renderAll();
+}
+
+async function dropboxUpload(silent) {
+  if (!await dropboxRefreshIfNeeded()) { if (!silent) notify('Dropbox session expired — reconnect'); return; }
+  const snapshot = JSON.stringify(db);
+  if (silent && snapshot === _lastUploadedState) return;
+  const payload = { app: 'PlayNext', version: 1, exportedAt: new Date().toISOString(), data: db };
+  setSyncing(true);
+  try {
+    const res = await fetch('https://content.dropboxapi.com/2/files/upload', {
+      method: 'POST', headers: {
+        'Authorization': 'Bearer ' + dbx.accessToken, 'Content-Type': 'application/octet-stream',
+        'Dropbox-API-Arg': JSON.stringify({ path: DBX_PATH, mode: 'overwrite', mute: true })
+      }, body: JSON.stringify(payload, null, 2)
+    });
+    if (!res.ok) throw new Error('upload failed (' + res.status + ')');
+    _lastUploadedState = snapshot;
+    dbx.lastSync = new Date().toLocaleString(); dbx.lastSyncAt = Date.now(); dbxSave(); updateDropboxUI();
+    notify(silent ? 'Auto-synced to Dropbox' : 'Uploaded to Dropbox');
+  } catch (err) { notify(err.message); }
+  finally { setSyncing(false); }
+}
+
+async function dropboxDownload(skipConfirm) {
+  if (!await dropboxRefreshIfNeeded()) { notify('Dropbox session expired — reconnect'); return; }
+  try {
+    const res = await fetch('https://content.dropboxapi.com/2/files/download', {
+      method: 'POST', headers: {
+        'Authorization': 'Bearer ' + dbx.accessToken,
+        'Dropbox-API-Arg': JSON.stringify({ path: DBX_PATH })
+      }
+    });
+    if (res.status === 409) { notify('No backup in Dropbox yet — upload one first'); return; }
+    if (!res.ok) throw new Error('download failed (' + res.status + ')');
+    const d = dbxParseBackup(await res.text());
+    if (!skipConfirm && !confirm('Download from Dropbox? It will replace all your current games and settings.')) return;
+    dbxApplyData(d);
+    dbx.lastSync = new Date().toLocaleString(); dbx.lastSyncAt = Date.now(); dbxSave(); updateDropboxUI();
+    notify('Synced from Dropbox');
+  } catch (err) { notify(err.message === 'bad backup format' ? 'Dropbox file is not a PlayNext backup' : err.message); }
+}
+
+async function dropboxDisconnect() {
+  if (!confirm('Disconnect Dropbox? You can reconnect any time with your App key.')) return;
+  dbx = { appKey: dbx.appKey, accessToken: '', refreshToken: '', expiresAt: 0, account: '', lastSync: '', lastSyncAt: 0, dismissedRemoteAt: 0, autoSync: false, autoUpload: false };
+  dbxSave(); updateDropboxUI(); notify('Dropbox disconnected');
+}
+
+function dropboxSetAutoUpload(on) {
+  dbx.autoUpload = !!on; dbxSave();
+  notify(on ? 'Auto-upload enabled' : 'Auto-upload disabled');
+  if (!on) clearTimeout(_syncTimer);
+}
+
+function dropboxSetAutoSync(on) {
+  dbx.autoSync = !!on; dbxSave();
+  notify(on ? 'Auto-sync on launch enabled' : 'Auto-sync on launch disabled');
+  if (on) dropboxCheckForUpdates();
+}
+
+async function dropboxCheckForUpdates() {
+  if (!dbx.accessToken) return;
+  if (!await dropboxRefreshIfNeeded()) return;
+  try {
+    const res = await fetch('https://api.dropboxapi.com/2/files/get_metadata', {
+      method: 'POST', headers: { 'Authorization': 'Bearer ' + dbx.accessToken, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ path: DBX_PATH })
+    });
+    if (!res.ok) return;
+    const j = await res.json();
+    const remoteAt = Date.parse(j.server_modified || '');
+    if (!remoteAt) return;
+    if (remoteAt > (dbx.lastSyncAt || 0) + 5000 && remoteAt !== dbx.dismissedRemoteAt) {
+      if (dbx.autoSync) dropboxDownload(true);
+      else openDbxSyncPrompt(remoteAt);
+    }
+  } catch (e) {}
+}
+let _dbxPendingRemoteAt = 0;
+function openDbxSyncPrompt(remoteAt) {
+  _dbxPendingRemoteAt = remoteAt;
+  document.getElementById('dbxSyncWhen').textContent = new Date(remoteAt).toLocaleString();
+  document.getElementById('dbxSyncOverlay').classList.add('open');
+}
+function closeDbxSyncPrompt() {
+  if (_dbxPendingRemoteAt) { dbx.dismissedRemoteAt = _dbxPendingRemoteAt; dbxSave(); }
+  document.getElementById('dbxSyncOverlay').classList.remove('open');
+}
+document.getElementById('dbxSyncLater').onclick = closeDbxSyncPrompt;
+document.getElementById('dbxSyncNow').onclick = () => { dropboxDownload(true); closeDbxSyncPrompt(); };
+document.getElementById('dbxSyncOverlay').addEventListener('click', e => { if (e.target === document.getElementById('dbxSyncOverlay')) closeDbxSyncPrompt(); });
+
+function updateDropboxUI() {
+  const setup = document.getElementById('dbxSetup'), connected = document.getElementById('dbxConnected'), st = document.getElementById('dbxStatus');
+  if (!setup) return;
+  document.getElementById('dbxKey').value = dbx.appKey || '';
+  const isConnected = !!dbx.accessToken;
+  setup.style.display = isConnected ? 'none' : 'block';
+  connected.style.display = isConnected ? 'block' : 'none';
+  document.getElementById('dbxAccount').textContent = dbx.account ? 'Connected as ' + dbx.account : 'Connected';
+  document.getElementById('dbxLastSync').textContent = dbx.lastSync ? 'last synced ' + dbx.lastSync : 'never synced';
+  document.getElementById('dbxAutoUpload').checked = !!dbx.autoUpload;
+  document.getElementById('dbxAutoSync').checked = !!dbx.autoSync;
+  st.textContent = isConnected ? 'Connected' : 'Not connected';
+  st.classList.toggle('connected', isConnected);
+  const syncBtn = document.getElementById('syncBtn');
+  if (syncBtn) syncBtn.style.display = isConnected ? 'flex' : 'none';
+}
+updateDropboxUI();
+dropboxHandleRedirect();
+dropboxCheckForUpdates();
+
+function updateStats() {
+  const g = db.games;
+  document.getElementById('statTotal').textContent = g.length;
+  document.getElementById('statPlaying').textContent = g.filter(x => x.status === 'in-progress').length;
+  document.getElementById('statCompleted').textContent = g.filter(x => x.status === 'completed').length;
+  document.getElementById('statHours').textContent = g.reduce((s, x) => s + Math.max(0, (x.totalHours || 0) - (x.hoursPlayed || 0)), 0);
+  document.getElementById('statWeekly').textContent = getWeeklyHours().toFixed(1);
+}
+
+function renderFilterCounts() {
+  const g = db.games;
+  const counts = {
+    'all': g.length,
+    'not-started': g.filter(x => x.status === 'not-started').length,
+    'in-progress': g.filter(x => x.status === 'in-progress').length,
+    'completed': g.filter(x => x.status === 'completed').length
+  };
+  const base = { 'all': 'All', 'not-started': 'Not Started', 'in-progress': 'In Progress', 'completed': 'Completed' };
+  document.querySelectorAll('.custom-dropdown-item').forEach(item => {
+    const v = item.dataset.value;
+    item.textContent = base[v] + ' (' + counts[v] + ')';
+    item.classList.toggle('active', v === currentFilter);
+  });
+  const activeItem = document.querySelector('.custom-dropdown-item.active');
+  document.getElementById('filterDropdownLabel').textContent = activeItem ? activeItem.textContent : base['all'] + ' (' + counts['all'] + ')';
+}
+
+function renderGameList() {
+  const list = document.getElementById('gameList');
+  const search = document.getElementById('searchInput').value.toLowerCase();
+
+  let games = db.games.filter(g => {
+    if (currentFilter !== 'all' && g.status !== currentFilter) return false;
+    if (search && !g.title.toLowerCase().includes(search)) return false;
+    return true;
+  });
+
+  if (db.games.length === 0) {
+    list.innerHTML = '<div class="empty-state"><div class="icon">&#127918;</div><h3>No games yet</h3><p>Click "+ Add" to add your first game.</p></div>';
+    renderFilterCounts();
+    return;
+  }
+
+  if (games.length === 0) {
+    list.innerHTML = '<div class="empty-state" style="padding:30px 20px;"><h3>No matches</h3><p>Try a different filter or search.</p></div>';
+    renderFilterCounts();
+    return;
+  }
+
+  list.innerHTML = games.map(g => {
+    const pct = g.totalHours > 0 ? Math.min(100, (g.hoursPlayed / g.totalHours) * 100) : 0;
+    const barColor = g.status === 'completed' ? 'var(--green)' : g.status === 'in-progress' ? 'var(--yellow)' : '#555';
+    const isLocked = isGameLocked(g.id);
+    const isSelected = g.id === selectedGameId;
+    const remaining = Math.max(0, (g.totalHours || 0) - (g.hoursPlayed || 0));
+    const estDate = (remaining > 0 && g.startDate && g.status !== 'completed') ? getEffectiveEndDate(g) : null;
+    const hasHours = g.totalHours > 0;
+    const daysLeft = estDate ? Math.round((new Date(estDate) - new Date()) / 86400000) : null;
+    return `
+      <div class="game-card ${isSelected ? 'selected' : ''} ${isLocked ? 'locked' : ''}" onclick="selectGame('${g.id}')">
+        ${isLocked ? '<span class="lock-icon" title="Locked - complete prequel first">&#128274;</span>' : ''}
+        <div class="title">${g.color ? '<span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:'+g.color+';margin-right:6px;vertical-align:middle;"></span>' : ''}${esc(g.title)}</div>
+        <div class="meta">
+          <span class="status-badge status-${g.status}">${g.status.replace('-',' ')}</span>
+          ${g.platform ? '<span>'+esc(g.platform)+'</span>' : ''}
+          ${hasHours ? '<span>'+g.hoursPlayed+'h / '+g.totalHours+'h</span>' : ''}
+          ${hasHours ? '<span>'+Math.round(pct)+'%</span>' : ''}
+          ${estDate ? '<span class="estimated-badge">~'+estDate+'</span>' : ''}
+        </div>
+        ${hasHours ? '<div class="hours-bar"><div class="fill" style="width:'+pct+'%;background:'+barColor+';"></div></div>' : ''}
+      </div>
+    `;
+  }).join('');
+  renderFilterCounts();
+}
+
+function esc(s) {
+  const d = document.createElement('div');
+  d.textContent = s || '';
+  return d.innerHTML;
+}
+
+function setFilter(f) {
+  currentFilter = f;
+  document.querySelectorAll('.custom-dropdown-item').forEach(item => {
+    item.classList.toggle('active', item.dataset.value === f);
+  });
+  const counts = { 'all': db.games.length, 'not-started': db.games.filter(x => x.status === 'not-started').length, 'in-progress': db.games.filter(x => x.status === 'in-progress').length, 'completed': db.games.filter(x => x.status === 'completed').length };
+  const base = { 'all': 'All', 'not-started': 'Not Started', 'in-progress': 'In Progress', 'completed': 'Completed' };
+  document.getElementById('filterDropdownLabel').textContent = base[f] + ' (' + counts[f] + ')';
+  document.getElementById('filterDropdown').classList.remove('open');
+  renderGameList();
+}
+
+function toggleFilterDropdown() {
+  document.getElementById('filterDropdown').classList.toggle('open');
+}
+
+document.addEventListener('click', function(e) {
+  if (!e.target.closest('.custom-dropdown')) {
+    document.querySelectorAll('.custom-dropdown').forEach(d => d.classList.remove('open'));
+  }
+});
+
+function openAddModal() {
+  document.getElementById('gameModalTitle').textContent = 'Add Game';
+  document.getElementById('editGameId').value = '';
+  document.getElementById('gameTitle').value = '';
+  document.getElementById('gameTotalHours').value = '';
+  document.getElementById('gameHoursPlayed').value = '';
+  document.getElementById('gameStatus').value = 'not-started';
+  document.getElementById('gamePlatform').value = '';
+  document.getElementById('gameStartDate').value = '';
+  document.getElementById('gameNotes').value = '';
+  document.getElementById('gameColor').value = '#888888';
+  renderModalSwatches('#888888');
+  document.getElementById('gameModal').classList.add('open');
+  document.getElementById('gameTitle').focus();
+  previewEndDate();
+}
+
+function openEditModal(id) {
+  const g = db.games.find(x => x.id === id);
+  if (!g) return;
+  document.getElementById('gameModalTitle').textContent = 'Edit Game';
+  document.getElementById('editGameId').value = g.id;
+  document.getElementById('gameTitle').value = g.title;
+  document.getElementById('gameTotalHours').value = g.totalHours || '';
+  document.getElementById('gameHoursPlayed').value = g.hoursPlayed || '';
+  document.getElementById('gameStatus').value = g.status;
+  document.getElementById('gamePlatform').value = g.platform || '';
+  document.getElementById('gameStartDate').value = g.startDate || '';
+  document.getElementById('gameNotes').value = g.notes || '';
+  document.getElementById('gameColor').value = g.color || '#888888';
+  renderModalSwatches(g.color || '#888888');
+  document.getElementById('gameModal').classList.add('open');
+  previewEndDate();
+}
+
+function closeModal(id) {
+  document.getElementById(id).classList.remove('open');
+}
+
+function saveGame() {
+  const id = document.getElementById('editGameId').value;
+  const title = document.getElementById('gameTitle').value.trim();
+  if (!title) { alert('Title is required'); return; }
+
+  const data = {
+    title,
+    totalHours: parseFloat(document.getElementById('gameTotalHours').value) || 0,
+    hoursPlayed: parseFloat(document.getElementById('gameHoursPlayed').value) || 0,
+    status: document.getElementById('gameStatus').value,
+    platform: document.getElementById('gamePlatform').value.trim(),
+    startDate: document.getElementById('gameStartDate').value,
+    notes: document.getElementById('gameNotes').value.trim(),
+    color: document.getElementById('gameColor').value
+  };
+
+  if (data.status === 'completed') {
+    data.hoursPlayed = data.totalHours;
+  }
+
+  if (id) {
+    const idx = db.games.findIndex(x => x.id === id);
+    if (idx >= 0) {
+      const prev = db.games[idx].status;
+      Object.assign(db.games[idx], data);
+      if (data.status === 'completed' && prev !== 'completed') {
+        const today = localDateStr(new Date());
+        db.games[idx].completedDate = today;
+        db.chains.forEach(c => {
+          const chainIdx = c.gameIds.indexOf(id);
+          if (chainIdx >= 0 && chainIdx < c.gameIds.length - 1) {
+            const sequel = db.games.find(x => x.id === c.gameIds[chainIdx + 1]);
+            if (sequel && sequel.status !== 'completed') {
+              sequel.startDate = today;
+            }
+          }
+        });
+      } else if (data.status !== 'completed') {
+        db.games[idx].completedDate = '';
+      }
+    }
+  } else {
+    data.id = genId();
+    data.createdAt = new Date().toISOString();
+    db.games.push(data);
+  }
+
+  saveDB();
+  closeModal('gameModal');
+  renderAll();
+  logChangelog(id ? 'change' : 'new', (id ? 'Updated' : 'Added') + ' game "' + title + '"');
+  notify(id ? 'Game updated' : 'Game added');
+}
+
+function deleteGame(id) {
+  if (!confirm('Delete this game? This will also remove it from any chains.')) return;
+  const g = db.games.find(x => x.id === id);
+  const title = g ? g.title : 'Unknown';
+  db.games = db.games.filter(x => x.id !== id);
+  db.chains.forEach(c => { c.gameIds = c.gameIds.filter(gid => gid !== id); });
+  db.chains = db.chains.filter(c => c.gameIds.length > 0);
+  if (selectedGameId === id) selectedGameId = null;
+  saveDB();
+  renderAll();
+  logChangelog('fix', 'Deleted game "' + title + '"');
+  notify('Game deleted');
+}
+
+function selectGame(id) {
+  selectedGameId = id;
+  renderGameList();
+  renderDetail();
+  switchTab('detail', document.querySelector('[data-tab="detail"]'));
+}
+
+function isGameLocked(gameId) {
+  for (const chain of db.chains) {
+    const idx = chain.gameIds.indexOf(gameId);
+    if (idx > 0) {
+      const preId = chain.gameIds[idx - 1];
+      const preGame = db.games.find(g => g.id === preId);
+      if (preGame && preGame.status !== 'completed') return true;
+    }
+  }
+  return false;
+}
+
+function renderDetail() {
+  const panel = document.getElementById('detailPanel');
+  const empty = document.getElementById('detailEmpty');
+
+  if (!selectedGameId) {
+    panel.classList.remove('open');
+    empty.style.display = 'block';
+    return;
+  }
+
+  _chainDateCache = null;
+  const chainDates = computeChainDates();
+
+  const g = db.games.find(x => x.id === selectedGameId);
+  if (!g) { panel.classList.remove('open'); empty.style.display = 'block'; return; }
+
+  empty.style.display = 'none';
+  panel.classList.add('open');
+
+  const pct = g.totalHours > 0 ? Math.min(100, (g.hoursPlayed / g.totalHours) * 100) : 0;
+  const remaining = Math.max(0, (g.totalHours || 0) - (g.hoursPlayed || 0));
+
+  const prequels = [];
+  const sequels = [];
+  db.chains.forEach(c => {
+    const idx = c.gameIds.indexOf(g.id);
+    if (idx > 0) {
+      const pre = db.games.find(x => x.id === c.gameIds[idx - 1]);
+      if (pre) prequels.push({ game: pre, chain: c });
+    }
+    if (idx < c.gameIds.length - 1) {
+      const seq = db.games.find(x => x.id === c.gameIds[idx + 1]);
+      if (seq) sequels.push({ game: seq, chain: c });
+    }
+  });
+
+  panel.innerHTML = `
+    <div class="detail-header">
+      <div>
+        <h2>${esc(g.title)}</h2>
+        <div style="color:var(--text2);font-size:0.85rem;margin-top:4px;">
+          ${g.platform ? esc(g.platform) + ' &middot; ' : ''}
+          <span class="status-badge status-${g.status}">${g.status.replace('-',' ')}</span>
+          ${isGameLocked(g.id) ? ' <span style="color:var(--yellow);">&#128274; Locked</span>' : ''}
+        </div>
+      </div>
+      <div class="detail-actions">
+        <button class="btn btn-sm btn-outline" onclick="openEditModal('${g.id}')">&#9998; Edit</button>
+        <button class="btn btn-sm btn-danger" onclick="deleteGame('${g.id}')">&#128465;</button>
+      </div>
+    </div>
+
+    <div class="detail-grid">
+      <div class="detail-box">
+        <h4>Hours Played</h4>
+        <div>
+          <span class="big-num">${g.hoursPlayed || 0}</span>
+          <span class="unit">/ ${g.totalHours || 0}h</span>
+        </div>
+        <div class="hours-bar" style="margin-top:8px;"><div class="fill" style="width:${pct}%;background:${g.status==='completed'?'var(--green)':g.status==='in-progress'?'var(--yellow)':'#555'};"></div></div>
+        <div style="font-size:0.8rem;color:var(--text2);margin-top:6px;">${Math.round(pct)}% complete &middot; ${remaining}h remaining</div>
+      </div>
+      <div class="detail-box">
+        <h4>Update Hours</h4>
+        <div style="display:flex;gap:6px;align-items:center;margin-top:8px;">
+          <input type="number" class="hours-input-inline" id="quickHours" placeholder="h" min="0" step="0.5" style="width:70px;">
+          <button class="btn btn-sm" onclick="quickUpdateHours('${g.id}')">+ Add</button>
+          <button class="btn btn-sm btn-outline" onclick="quickSetHours('${g.id}')">Set Total</button>
+        </div>
+      </div>
+      <div class="detail-box">
+        <h4>Dates</h4>
+        <div style="font-size:0.85rem;">
+          ${(() => {
+            const effStart = getEffectiveStartDate(g);
+            const effEnd = getEffectiveEndDate(g);
+            const cd = chainDates[g.id];
+            const chainNote = cd ? '<div style="color:var(--accent);font-size:0.75rem;margin-top:2px;">Chain: ' + esc(cd.chainName) + ' #' + (cd.chainIndex + 1) + '/' + cd.chainLength + '</div>' : '';
+            const startLabel = cd && cd.chainIndex > 0 ? 'Starts after previous' : 'Start';
+            if (effStart) {
+              let startHtml = '<div>' + startLabel + ': ' + effStart + '</div>';
+              if (cd && cd.chainIndex > 0 && effStart !== g.startDate) {
+                startHtml += '<div style="font-size:0.75rem;color:var(--text2);">Original: ' + (g.startDate || 'none') + '</div>';
+              }
+              if (effEnd) {
+                const daysLeft = Math.max(1, Math.round((new Date(effEnd) - new Date()) / 86400000));
+                startHtml += '<div>Est. End: <strong style="color:var(--accent);">' + effEnd + '</strong> <span style="font-size:0.75rem;color:var(--text2);">(' + daysLeft + ' days)</span></div>';
+              } else {
+                startHtml += '<div style="color:var(--text2);">Set gaming hours in Settings</div>';
+              }
+              return startHtml + chainNote;
+            }
+            return '<div style="color:var(--text2);">No start date</div>' + chainNote;
+          })()}
+        </div>
+      </div>
+      <div class="detail-box">
+        <h4>Status</h4>
+        <div class="form-group" style="margin:0;margin-top:4px;">
+          <select style="width:100%;border:1px solid var(--border);border-radius:6px;padding:6px 10px;color:var(--text);font-size:0.85rem;outline:none;" onchange="changeStatus('${g.id}',this.value)">
+            <option value="not-started" ${g.status==='not-started'?'selected':''}>Not Started</option>
+            <option value="in-progress" ${g.status==='in-progress'?'selected':''}>In Progress</option>
+            <option value="completed" ${g.status==='completed'?'selected':''}>Completed</option>
+          </select>
+        </div>
+      </div>
+      <div class="detail-box">
+        <h4>Gantt Color</h4>
+        ${renderColorSwatches(g.color, 'setGameColor', g.id)}
+        <div style="display:flex;align-items:center;gap:8px;margin-top:8px;">
+          <input type="color" value="${g.color || '#888888'}" style="width:36px;height:32px;border:1px solid var(--border);border-radius:6px;cursor:pointer;background:none;padding:2px;" onchange="setGameColor('${g.id}',this.value)">
+          <span style="font-size:0.75rem;color:var(--text2);">Custom</span>
+        </div>
+      </div>
+    </div>
+
+    ${g.notes ? '<div class="detail-box" style="margin-bottom:16px;"><h4>Notes</h4><div style="font-size:0.85rem;white-space:pre-wrap;">'+esc(g.notes)+'</div></div>' : ''}
+
+    <div class="relation-section">
+      <h4>Prequels (play before this)</h4>
+      ${prequels.length > 0 ? '<div class="relation-links">' + prequels.map(p =>
+        '<span class="relation-link" onclick="selectGame(\''+p.game.id+'\')">'+esc(p.game.title)+' <span style="color:var(--text2);font-size:0.7rem;">('+esc(p.chain.name)+')</span></span>'
+      ).join('') + '</div>' : '<div style="font-size:0.8rem;color:var(--text2);">None linked</div>'}
+    </div>
+
+    <div class="relation-section">
+      <h4>Sequels (play after this)</h4>
+      ${sequels.length > 0 ? '<div class="relation-links">' + sequels.map(s =>
+        '<span class="relation-link" onclick="selectGame(\''+s.game.id+'\')">'+esc(s.game.title)+' <span style="color:var(--text2);font-size:0.7rem;">('+esc(s.chain.name)+')</span></span>'
+      ).join('') + '</div>' : '<div style="font-size:0.8rem;color:var(--text2);">None linked</div>'}
+    </div>
+  `;
+}
+
+function quickUpdateHours(id) {
+  const g = db.games.find(x => x.id === id);
+  if (!g) return;
+  const add = parseFloat(document.getElementById('quickHours').value);
+  if (isNaN(add) || add <= 0) return;
+  g.hoursPlayed = Math.min(g.totalHours || Infinity, (g.hoursPlayed || 0) + add);
+  if (g.totalHours && g.hoursPlayed >= g.totalHours) { g.status = 'completed'; g.hoursPlayed = g.totalHours; }
+  else if (g.hoursPlayed > 0 && g.status === 'not-started') { g.status = 'in-progress'; }
+  saveDB();
+  renderAll();
+  logChangelog('change', 'Added ' + add + 'h to "' + g.title + '" (' + g.hoursPlayed + '/' + (g.totalHours || '?') + 'h)');
+  notify('Hours updated');
+}
+
+function quickSetHours(id) {
+  const g = db.games.find(x => x.id === id);
+  if (!g) return;
+  const val = parseFloat(document.getElementById('quickHours').value);
+  if (isNaN(val) || val < 0) return;
+  g.hoursPlayed = Math.min(g.totalHours || Infinity, val);
+  if (g.totalHours && g.hoursPlayed >= g.totalHours) { g.status = 'completed'; g.hoursPlayed = g.totalHours; }
+  else if (g.hoursPlayed > 0 && g.status === 'not-started') { g.status = 'in-progress'; }
+  saveDB();
+  renderAll();
+  logChangelog('change', 'Set "' + g.title + '" hours to ' + g.hoursPlayed + '/' + (g.totalHours || '?') + 'h');
+  notify('Hours updated');
+}
+
+function changeStatus(id, val) {
+  const g = db.games.find(x => x.id === id);
+  if (!g) return;
+  g.status = val;
+  const today = localDateStr(new Date());
+  if (val === 'completed') {
+    if (g.totalHours) g.hoursPlayed = g.totalHours;
+    g.completedDate = today;
+    db.chains.forEach(c => {
+      const idx = c.gameIds.indexOf(id);
+      if (idx >= 0 && idx < c.gameIds.length - 1) {
+        const sequel = db.games.find(x => x.id === c.gameIds[idx + 1]);
+        if (sequel && sequel.status !== 'completed') {
+          sequel.startDate = today;
+        }
+      }
+    });
+  } else {
+    g.completedDate = '';
+  }
+  if (val === 'in-progress' && !g.startDate) g.startDate = today;
+  saveDB();
+  renderAll();
+  logChangelog('change', 'Changed "' + g.title + '" status to ' + val.replace('-', ' '));
+}
+
+function setGameColor(id, color) {
+  const g = db.games.find(x => x.id === id);
+  if (!g) return;
+  g.color = color || '';
+  saveDB();
+  renderAll();
+  logChangelog('change', 'Changed color of "' + g.title + '"');
+}
+
+// Gantt Chart
+function renderGantt() {
+  _chainDateCache = null;
+  const chainDates = computeChainDates();
+
+  const allGames = db.games.filter(g => {
+    if (g.status === 'completed') return false;
+    if (chainDates[g.id]) return chainDates[g.id].endDate;
+    return g.startDate && (getGameEndDate(g) || g.status === 'in-progress');
+  });
+
+  const tasks = { data: [], links: [] };
+  let taskId = 1;
+  const gameIdToTaskId = {};
+
+  allGames.forEach(g => {
+    const startDate = getEffectiveStartDate(g);
+    const endDate = getEffectiveEndDate(g);
+    if (!startDate) return;
+
+    const sd = new Date(startDate + 'T00:00:00');
+    const ed = endDate ? new Date(endDate + 'T00:00:00') : new Date(sd);
+    if (ed <= sd) ed.setDate(ed.getDate() + 1);
+
+    const pct = g.totalHours > 0 ? Math.round((g.hoursPlayed / g.totalHours) * 100) : 0;
+    const cd = chainDates[g.id];
+    const chainLabel = cd ? ' [' + esc(cd.chainName) + ' #' + (cd.chainIndex + 1) + '/' + cd.chainLength + ']' : '';
+    const color = g.color || '#888888';
+
+    gameIdToTaskId[g.id] = taskId;
+    tasks.data.push({
+      id: taskId++,
+      text: g.title,
+      start_date: sd,
+      end_date: ed,
+      progress: pct / 100,
+      color: color,
+      custom_class: 'gantt-' + g.status,
+      _gameId: g.id,
+      _pct: pct,
+      _chainLabel: chainLabel
+    });
+  });
+
+  db.chains.forEach(chain => {
+    for (let i = 1; i < chain.gameIds.length; i++) {
+      const fromId = gameIdToTaskId[chain.gameIds[i - 1]];
+      const toId = gameIdToTaskId[chain.gameIds[i]];
+      if (fromId && toId) {
+        tasks.links.push({
+          id: tasks.links.length + 1,
+          source: fromId,
+          target: toId,
+          type: '0'
+        });
+      }
+    }
+  });
+
+  gantt.clearAll();
+
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+
+  if (allGames.length > 0) {
+    const dates = allGames.map(g => {
+      const s = new Date(getEffectiveStartDate(g) + 'T00:00:00');
+      const e = getEffectiveEndDate(g) ? new Date(getEffectiveEndDate(g) + 'T00:00:00') : new Date(s);
+      return { s, e };
+    });
+    let minDate = dates.reduce((m, d) => d.s < m ? d.s : m, dates[0].s);
+    let maxDate = dates.reduce((m, d) => d.e > m ? d.e : m, dates[0].e);
+    minDate.setDate(minDate.getDate() - 7);
+    maxDate.setDate(maxDate.getDate() + 30);
+    const viewStart = new Date(today);
+    viewStart.setDate(viewStart.getDate() - 14);
+    gantt.config.start_date = viewStart < minDate ? viewStart : minDate;
+    gantt.config.end_date = maxDate;
+  } else {
+    const viewStart = new Date(today);
+    viewStart.setDate(viewStart.getDate() - 7);
+    gantt.config.start_date = viewStart;
+    const viewEnd = new Date(today);
+    viewEnd.setDate(viewEnd.getDate() + 90);
+    gantt.config.end_date = viewEnd;
+  }
+
+  gantt.parse(tasks);
+  gantt.showDate(today);
+}
+
+gantt.config.readonly = true;
+gantt.config.drag_move = false;
+gantt.config.drag_resize = false;
+gantt.config.drag_progress = false;
+gantt.config.edit_on_dblclick = false;
+gantt.config.details_on_dblclick = false;
+gantt.config.show_progress = true;
+gantt.config.row_height = 36;
+gantt.config.bar_height = 22;
+gantt.config.link_line_width = 2;
+gantt.config.link_arrow_size = 6;
+gantt.config.min_column_width = 48;
+gantt.config.scale_unit = 'day';
+gantt.config.scale_date = '%d';
+gantt.config.subscales = [
+  { unit: 'month', step: 1, date: '%M %Y' }
+];
+gantt.config.start_on_monday = true;
+gantt.config.tooltip = true;
+gantt.config.autoscroll = true;
+gantt.config.columns = [
+  { name: 'text', label: 'Game', width: '*', tree_column: true }
+];
+
+gantt.templates.task_class = function(start, end, task) {
+  return task.custom_class || '';
+};
+gantt.templates.task_text = function(start, end, task) {
+  return (task._pct || 0) + '% ' + (task._chainLabel || '');
+};
+gantt.templates.tooltip_text = function(start, end, task) {
+  const game = db.games.find(g => g.id === task._gameId);
+  if (!game) return '';
+  const pct = game.totalHours > 0 ? Math.round((game.hoursPlayed / game.totalHours) * 100) : 0;
+  return '<b>' + esc(game.title) + '</b><br>Status: ' + game.status.replace('-', ' ') +
+    '<br>Hours: ' + (game.hoursPlayed || 0) + ' / ' + (game.totalHours || 0) + ' (' + pct + '%)' +
+    (game.platform ? '<br>Platform: ' + esc(game.platform) : '');
+};
+
+gantt.init('ganttContainer');
+
+function ganttPrev() {
+  try {
+    var state = gantt.getScrollState();
+    var curDate = gantt.dateFromPos(state.x);
+    var newDate = gantt.date.add(curDate, -3, 'month');
+    gantt.scrollTo(gantt.posFromDate(newDate));
+  } catch(e) { console.warn('ganttPrev:', e); }
+}
+
+function ganttNext() {
+  try {
+    var state = gantt.getScrollState();
+    var curDate = gantt.dateFromPos(state.x);
+    var newDate = gantt.date.add(curDate, 3, 'month');
+    gantt.scrollTo(gantt.posFromDate(newDate));
+  } catch(e) { console.warn('ganttNext:', e); }
+}
+
+function ganttToday() {
+  try {
+    gantt.showDate(new Date());
+  } catch(e) { console.warn('ganttToday:', e); }
+}
+
+// Chains
+function openChainModal() {
+  document.getElementById('chainModalTitle').textContent = 'New Play Order Chain';
+  document.getElementById('editChainId').value = '';
+  document.getElementById('chainName').value = '';
+  tempChainGames = [];
+  populateChainSelect();
+  renderChainPreview();
+  document.getElementById('chainModal').classList.add('open');
+}
+
+function openEditChainModal(id) {
+  const c = db.chains.find(x => x.id === id);
+  if (!c) return;
+  document.getElementById('chainModalTitle').textContent = 'Edit Chain';
+  document.getElementById('editChainId').value = c.id;
+  document.getElementById('chainName').value = c.name;
+  tempChainGames = [...c.gameIds];
+  populateChainSelect();
+  renderChainPreview();
+  document.getElementById('chainModal').classList.add('open');
+}
+
+function populateChainSelect() {
+  const sel = document.getElementById('chainGameSelect');
+  const available = db.games.filter(g => !tempChainGames.includes(g.id));
+  sel.innerHTML = available.map(g =>
+    '<option value="' + g.id + '">' + esc(g.title) + '</option>'
+  ).join('');
+}
+
+function addToChain() {
+  const sel = document.getElementById('chainGameSelect');
+  const id = sel.value;
+  if (!id) return;
+  tempChainGames.push(id);
+  populateChainSelect();
+  renderChainPreview();
+}
+
+function removeFromChain(idx) {
+  tempChainGames.splice(idx, 1);
+  populateChainSelect();
+  renderChainPreview();
+}
+
+function renderChainPreview() {
+  const div = document.getElementById('chainPreview');
+  if (tempChainGames.length === 0) {
+    div.innerHTML = '<div style="font-size:0.8rem;color:var(--text2);">No games in chain yet.</div>';
+    return;
+  }
+  div.innerHTML = '<div style="font-size:0.75rem;color:var(--text2);margin-bottom:6px;">Play order:</div>' +
+    '<div class="chain-list">' +
+    tempChainGames.map((gid, i) => {
+      const g = db.games.find(x => x.id === gid);
+      if (!g) return '';
+      const isCompleted = g.status === 'completed';
+      const isCurrent = g.status === 'in-progress';
+      const cls = isCompleted ? 'completed' : isCurrent ? 'current' : 'blocked';
+      return (i > 0 ? '<span class="chain-arrow">&#10132;</span>' : '') +
+        '<span class="chain-item ' + cls + '">' +
+        esc(g.title) +
+        ' <span style="cursor:pointer;color:var(--accent);margin-left:4px;" onclick="removeFromChain(' + i + ')">&#10005;</span>' +
+        '</span>';
+    }).join('') +
+    '</div>';
+}
+
+function saveChain() {
+  const id = document.getElementById('editChainId').value;
+  const name = document.getElementById('chainName').value.trim();
+  if (!name) { alert('Chain name is required'); return; }
+  if (tempChainGames.length < 2) { alert('Add at least 2 games to the chain'); return; }
+
+  if (id) {
+    const c = db.chains.find(x => x.id === id);
+    if (c) { c.name = name; c.gameIds = [...tempChainGames]; }
+  } else {
+    db.chains.push({ id: genId(), name, gameIds: [...tempChainGames] });
+  }
+
+  saveDB();
+  closeModal('chainModal');
+  renderAll();
+  logChangelog(id ? 'change' : 'new', (id ? 'Updated' : 'Created') + ' chain "' + name + '" (' + tempChainGames.length + ' games)');
+  notify(id ? 'Chain updated' : 'Chain created');
+}
+
+function deleteChain(id) {
+  if (!confirm('Delete this chain?')) return;
+  const c = db.chains.find(x => x.id === id);
+  const name = c ? c.name : 'Unknown';
+  db.chains = db.chains.filter(x => x.id !== id);
+  saveDB();
+  renderAll();
+  logChangelog('fix', 'Deleted chain "' + name + '"');
+  notify('Chain deleted');
+}
+
+function renderChains() {
+  const div = document.getElementById('chainsList');
+  if (db.chains.length === 0) {
+    div.innerHTML = '<div class="empty-state"><div class="icon">&#128279;</div><h3>No play order chains</h3><p>Create a chain to define the order games should be played.</p></div>';
+    return;
+  }
+
+  _chainDateCache = null;
+  const chainDates = computeChainDates();
+
+  div.innerHTML = db.chains.map(c => {
+    return `
+      <div class="chain-card">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
+          <h3>${esc(c.name)}</h3>
+          <div style="display:flex;gap:6px;">
+            <button class="btn btn-sm btn-outline" onclick="openEditChainModal('${c.id}')">&#9998; Edit</button>
+            <button class="btn btn-sm btn-danger" onclick="deleteChain('${c.id}')">&#128465;</button>
+          </div>
+        </div>
+        <div class="chain-list">
+          ${c.gameIds.map((gid, i) => {
+            const g = db.games.find(x => x.id === gid);
+            if (!g) return '';
+            const isCompleted = g.status === 'completed';
+            const isCurrent = g.status === 'in-progress';
+            const cls = isCompleted ? 'completed' : isCurrent ? 'current' : 'blocked';
+            const pct = g.totalHours > 0 ? Math.round((g.hoursPlayed / g.totalHours) * 100) : 0;
+            const cd = chainDates[gid];
+            const dateInfo = cd && cd.endDate ? '<span class="chain-date">' + cd.startDate + ' &rarr; ' + cd.endDate + '</span>' : '';
+            return (i > 0 ? '<span class="chain-arrow">&#10132;</span>' : '') +
+              '<span class="chain-item ' + cls + '" style="cursor:pointer;" onclick="selectGame(\'' + g.id + '\')">' +
+              (isCompleted ? '&#10003; ' : isCurrent ? '&#9654; ' : '') +
+              esc(g.title) +
+              ' <span style="font-size:0.7rem;color:var(--text2);">' + pct + '%</span>' +
+              dateInfo +
+              '</span>';
+          }).join('')}
+        </div>
+      </div>
+    `;
+  }).join('');
+}
+
+function switchTab(tab, el) {
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  document.querySelectorAll('.tab-pane').forEach(p => p.classList.remove('active'));
+  el.classList.add('active');
+  document.getElementById('tab-' + tab).classList.add('active');
+
+  if (tab === 'gantt') renderGantt();
+  if (tab === 'chains') renderChains();
+  if (tab === 'detail') renderDetail();
+  if (tab === 'changelog') renderChangelog();
+  if (tab === 'settings') loadSettingsUI();
+}
+
+function renderAll() {
+  updateStats();
+  renderGameList();
+  renderGantt();
+  renderDetail();
+  renderChains();
+}
+
+// Init
+function applyTheme(theme) {
+  document.documentElement.setAttribute('data-theme', theme);
+  document.documentElement.setAttribute('data-gantt-theme', theme);
+  localStorage.setItem('playnext-theme', theme);
+  const label = document.getElementById('themeLabel');
+  if (label) label.textContent = theme === 'light' ? 'Light Mode' : 'Dark Mode';
+  try { renderGantt(); } catch(e) {}
+}
+
+function toggleTheme() {
+  const current = document.documentElement.getAttribute('data-theme');
+  applyTheme(current === 'light' ? 'dark' : 'light');
+}
+
+applyTheme(localStorage.getItem('playnext-theme') || 'dark');
+
+const ACCENT_PRESETS = [
+  '#e94560', '#ff6b6b', '#ff9100', '#ffd600', '#00c853',
+  '#00bfa5', '#2979ff', '#7c4dff', '#e040fb', '#ff4081'
+];
+
+const GAME_COLORS = [
+  '#e94560', '#ff6b6b', '#ff9100', '#ffd600', '#00c853',
+  '#00bfa5', '#2979ff', '#7c4dff', '#e040fb', '#ff4081',
+  '#78909c', '#8d6e6c', '#ab47bc', '#5c6bc0', '#26a69a',
+  '#66bb6a', '#d4e157', '#ffa726', '#ef5350', '#ec407a'
+];
+
+function renderColorSwatches(selectedColor, fnName, extraArg) {
+  const current = selectedColor || '#888888';
+  let html = '<div style="display:flex;flex-wrap:wrap;gap:5px;margin-top:4px;">';
+  GAME_COLORS.forEach(c => {
+    const active = c === current;
+    html += '<div onclick="' + fnName + '(\'' + extraArg + '\',\'' + c + '\')" style="width:24px;height:24px;border-radius:50%;cursor:pointer;border:2px solid ' + (active ? 'var(--text)' : 'transparent') + ';background:' + c + ';transition:border-color 0.15s;" onmouseenter="this.style.borderColor=\'var(--accent)\'" onmouseleave="this.style.borderColor=\'' + (active ? 'var(--text)' : 'transparent') + '\'" title="' + c + '"></div>';
+  });
+  html += '<div onclick="' + fnName + '(\'' + extraArg + '\',\'\')" style="width:24px;height:24px;border-radius:50%;cursor:pointer;border:2px solid ' + (!selectedColor ? 'var(--text)' : 'var(--border)') + ';background:var(--bg);display:flex;align-items:center;justify-content:center;font-size:0.6rem;color:var(--text2);" title="Default gray">&#10005;</div>';
+  html += '</div>';
+  return html;
+}
+
+function previewGameColor(inputId, color) {
+  document.getElementById(inputId).value = color || '#888888';
+  renderModalSwatches(color);
+}
+
+function renderModalSwatches(color) {
+  document.getElementById('modalColorSwatches').innerHTML = renderColorSwatches(color, 'previewGameColor', 'gameColor');
+}
+
+function applyAccent(color) {
+  document.documentElement.style.setProperty('--accent', color);
+  localStorage.setItem('playnext-accent', color);
+  document.querySelectorAll('.accent-swatch').forEach(s => {
+    s.classList.toggle('active', s.dataset.color === color);
+  });
+}
+
+function renderAccentSwatches() {
+  const container = document.getElementById('accentSwatches');
+  const saved = localStorage.getItem('playnext-accent') || '#e94560';
+  applyAccent(saved);
+  container.innerHTML = ACCENT_PRESETS.map(c =>
+    '<div class="accent-swatch' + (c === saved ? ' active' : '') + '" style="background:' + c + ';" data-color="' + c + '" onclick="applyAccent(\'' + c + '\')"></div>'
+  ).join('');
+}
+
+renderAccentSwatches();
+
+loadDB();
+renderAll();
+loadSettingsUI();
+
+const cl = JSON.parse(localStorage.getItem('playnext_changelog') || '[]');
+if (cl.length === 0) logChangelog('new', 'App initialized');
+
+document.getElementById('searchInput').addEventListener('input', function() { updateSearchClear(); renderGameList(); });
+
+function updateSearchClear() {
+  const btn = document.getElementById('searchClear');
+  const val = document.getElementById('searchInput').value;
+  btn.style.display = val ? 'block' : 'none';
+}
+
+document.querySelectorAll('.modal-overlay').forEach(m => {
+  m.addEventListener('click', e => { if (e.target === m) m.classList.remove('open'); });
+});
+
+document.addEventListener('keydown', e => {
+  if (e.key === 'Escape') {
+    document.querySelectorAll('.modal-overlay.open').forEach(m => m.classList.remove('open'));
+  }
+});
+
+['setMon','setTue','setWed','setThu','setFri','setSat','setSun'].forEach(id => {
+  document.getElementById(id).addEventListener('change', saveSettings);
+});
+
+document.getElementById('gameColor').addEventListener('input', function() {
+  renderModalSwatches(this.value);
+});
+
+function updateClock() {
+  const now = new Date();
+  document.getElementById('clockDate').textContent = now.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
+  document.getElementById('clockTime').textContent = now.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
+}
+updateClock();
+setInterval(updateClock, 10000);
+
+if ('serviceWorker' in navigator) {
+  navigator.serviceWorker.register('./sw.js').catch(() => {});
+}
+</script>
+</body>
+</html>
