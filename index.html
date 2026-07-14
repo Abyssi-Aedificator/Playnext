@@ -53,8 +53,12 @@
     font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
     background: var(--bg);
     color: var(--text);
-    min-height: 100vh;
+    height: 100vh;
+    box-sizing: border-box;
     padding-top: 24px;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
   }
 
   .dev-banner {
@@ -109,7 +113,8 @@
 
   .layout {
     display: flex;
-    height: calc(100vh - 74px);
+    flex: 1;
+    min-height: 0;
   }
 
   .sidebar {
@@ -410,7 +415,7 @@
 
   .form-row {
     display: grid;
-    grid-template-columns: 1fr 1fr;
+    grid-template-columns: 1.3fr 1fr;
     gap: 12px;
   }
 
@@ -1036,6 +1041,7 @@
     cursor: pointer;
     user-select: none;
   }
+  .form-group label.cb-toggle { display: flex; }
   .cb-toggle input { display: none; }
   .cb-track {
     width: 28px;
@@ -1264,6 +1270,11 @@
       <div class="form-group">
         <label>Estimated End</label>
         <div class="computed-date-display empty" id="gameEndDatePreview">Set date &amp; hours to see estimate</div>
+        <label class="cb-toggle" style="margin-top:8px;white-space:nowrap;">
+          <input type="checkbox" id="gameDateMode" checked>
+          <span class="cb-track"><span class="cb-thumb"></span></span>
+          <span style="font-size:0.75rem;color:var(--text2);">Use Today for End</span>
+        </label>
       </div>
       <div class="form-group">
         <label>Color</label>
@@ -1491,7 +1502,6 @@ function saveSettings() {
   saveDB();
   renderSettingsSummary();
   renderAll();
-  logChangelog('change', 'Updated daily hours settings');
 }
 
 function loadSettingsUI() {
@@ -1539,7 +1549,6 @@ function applyPreset(name) {
   saveDB();
   loadSettingsUI();
   renderAll();
-  logChangelog('change', 'Applied preset "' + name + '"');
   notify('Preset applied');
 }
 
@@ -1561,10 +1570,10 @@ const CHANGELOG_TYPES = {
   'new': '&#10010;', 'change': '&#9998;', 'fix': '&#10006;'
 };
 
-function logChangelog(type, description) {
+function logChangelog(type, description, version) {
   let entries = [];
   try { entries = JSON.parse(localStorage.getItem(CHANGELOG_KEY)) || []; } catch(e) {}
-  entries.unshift({ id: genId(), version: CHANGELOG_VERSION, type, description, ts: new Date().toISOString() });
+  entries.unshift({ id: genId(), version: version || CHANGELOG_VERSION, type, description, ts: new Date().toISOString() });
   if (entries.length > 200) entries = entries.slice(0, 200);
   localStorage.setItem(CHANGELOG_KEY, JSON.stringify(entries));
 }
@@ -1932,6 +1941,7 @@ function openAddModal() {
   document.getElementById('gameNotes').value = '';
   document.getElementById('gameColor').value = '#888888';
   renderModalSwatches('#888888');
+  document.getElementById('gameDateMode').checked = true;
   document.getElementById('gameModal').classList.add('open');
   document.getElementById('gameTitle').focus();
   previewEndDate();
@@ -1950,6 +1960,7 @@ function openEditModal(id) {
   document.getElementById('gameNotes').value = g.notes || '';
   document.getElementById('gameColor').value = g.color || '#888888';
   renderModalSwatches(g.color || '#888888');
+  document.getElementById('gameDateMode').checked = g.dateMode !== 'chain';
   document.getElementById('gameModal').classList.add('open');
   previewEndDate();
 }
@@ -1970,7 +1981,8 @@ function saveGame() {
     status: document.getElementById('gameStatus').value,
     startDate: document.getElementById('gameStartDate').value,
     notes: document.getElementById('gameNotes').value.trim(),
-    color: document.getElementById('gameColor').value
+    color: document.getElementById('gameColor').value,
+    dateMode: document.getElementById('gameDateMode').checked ? 'today' : 'chain'
   };
 
   if (data.status === 'completed') {
@@ -2007,7 +2019,6 @@ function saveGame() {
   saveDB();
   closeModal('gameModal');
   renderAll();
-  logChangelog(id ? 'change' : 'new', (id ? 'Updated' : 'Added') + ' game "' + title + '"');
   notify(id ? 'Game updated' : 'Game added');
 }
 
@@ -2021,7 +2032,6 @@ function deleteGame(id) {
   if (selectedGameId === id) selectedGameId = null;
   saveDB();
   renderAll();
-  logChangelog('fix', 'Deleted game "' + title + '"');
   notify('Game deleted');
 }
 
@@ -2139,11 +2149,11 @@ function renderDetail() {
             return '<div style="color:var(--text2);">No start date</div>' + chainNote;
           })()}
         </div>
-        <div style="margin-top:8px;display:flex;align-items:center;gap:8px;font-size:0.8rem;color:var(--text2);">
+        <div style="margin-top:8px;display:flex;align-items:center;gap:6px;font-size:0.8rem;color:var(--text2);">
           <label class="cb-toggle">
             <input type="checkbox" ${g.dateMode==='today'?'checked':''} onchange="setDateMode('${g.id}',this.checked)">
             <span class="cb-track"><span class="cb-thumb"></span></span>
-            Use today + avg daily hours instead
+            Use Today for End
           </label>
         </div>
       </div>
@@ -2195,7 +2205,6 @@ function quickUpdateHours(id) {
   else if (g.hoursPlayed > 0 && g.status === 'not-started') { g.status = 'in-progress'; }
   saveDB();
   renderAll();
-  logChangelog('change', 'Added ' + add + 'h to "' + g.title + '" (' + g.hoursPlayed + '/' + (g.totalHours || '?') + 'h)');
   notify('Hours updated');
 }
 
@@ -2209,7 +2218,6 @@ function quickSetHours(id) {
   else if (g.hoursPlayed > 0 && g.status === 'not-started') { g.status = 'in-progress'; }
   saveDB();
   renderAll();
-  logChangelog('change', 'Set "' + g.title + '" hours to ' + g.hoursPlayed + '/' + (g.totalHours || '?') + 'h');
   notify('Hours updated');
 }
 
@@ -2236,7 +2244,6 @@ function changeStatus(id, val) {
   if (val === 'in-progress' && !g.startDate) g.startDate = today;
   saveDB();
   renderAll();
-  logChangelog('change', 'Changed "' + g.title + '" status to ' + val.replace('-', ' '));
 }
 
 function setGameColor(id, color) {
@@ -2245,7 +2252,6 @@ function setGameColor(id, color) {
   g.color = color || '';
   saveDB();
   renderAll();
-  logChangelog('change', 'Changed color of "' + g.title + '"');
 }
 
 function setDateMode(id, useToday) {
@@ -2496,7 +2502,6 @@ function saveChain() {
   saveDB();
   closeModal('chainModal');
   renderAll();
-  logChangelog(id ? 'change' : 'new', (id ? 'Updated' : 'Created') + ' chain "' + name + '" (' + tempChainGames.length + ' games)');
   notify(id ? 'Chain updated' : 'Chain created');
 }
 
@@ -2507,7 +2512,6 @@ function deleteChain(id) {
   db.chains = db.chains.filter(x => x.id !== id);
   saveDB();
   renderAll();
-  logChangelog('fix', 'Deleted chain "' + name + '"');
   notify('Chain deleted');
 }
 
@@ -2650,7 +2654,7 @@ renderAll();
 loadSettingsUI();
 
 localStorage.removeItem('playnext_changelog');
-logChangelog('new', 'App initialized');
+logChangelog('new', 'App initialized', '1.0.0');
 logChangelog('new', 'PWA support');
 logChangelog('new', 'Dropbox sync');
 logChangelog('new', 'Search bar clear button');
@@ -2666,6 +2670,9 @@ logChangelog('change', 'Redesigned add/edit game modal');
 logChangelog('new', 'Dev banner indicator');
 logChangelog('fix', 'Platform field removed from add/edit modal');
 logChangelog('fix', 'Date mode toggle always on');
+logChangelog('change', 'Renamed date mode toggle to "Use Today for End"');
+logChangelog('fix', 'Date mode toggle overlapping text in add/edit modal');
+logChangelog('fix', 'Main page no longer scrolls; full-height layout');
 
 document.getElementById('searchInput').addEventListener('input', function() { updateSearchClear(); renderGameList(); });
 
